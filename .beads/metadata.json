@@ -1,0 +1,7 @@
+{
+  "database": "dolt",
+  "backend": "dolt",
+  "dolt_mode": "embedded",
+  "dolt_database": "python_gazelle",
+  "project_id": "eb61268d-fa16-449a-8fc4-390df63d7a1d"
+}
