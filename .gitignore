@@ -182,3 +182,5 @@ cython_debug/
 .dolt/
 *.db
 .beads-credential-key
+
+.claude
