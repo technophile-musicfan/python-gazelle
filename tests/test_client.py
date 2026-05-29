@@ -86,3 +86,43 @@ async def test_notification_resource_list_returns_notifications():
     assert len(notifications) == 1
     assert isinstance(notifications[0], Notification)
     assert notifications[0].notification_type == "Upload Deleted"
+
+
+import httpx as _httpx
+from pygazelle.client import GazelleClient, OrpheusClient, RedactedClient
+from pygazelle.transport import GazelleTransport as _GazelleTransport
+from pygazelle.resources.torrents import TorrentResource as _TorrentResource
+from pygazelle.resources.artists import ArtistResource as _ArtistResource
+from pygazelle.resources.notifications import NotificationResource as _NotificationResource
+
+
+class _FakeHttpTransport(_httpx.AsyncBaseTransport):
+    async def handle_async_request(self, request: _httpx.Request) -> _httpx.Response:
+        return _httpx.Response(200, json={"status": "success", "response": {}})
+
+
+def _make_client() -> GazelleClient:
+    http = _httpx.AsyncClient(transport=_FakeHttpTransport())
+    transport = _GazelleTransport("https://example.com", api_key="k", _http_client=http)
+    return GazelleClient(transport)
+
+
+def test_client_exposes_resource_namespaces():
+    client = _make_client()
+    assert isinstance(client.torrents, _TorrentResource)
+    assert isinstance(client.artists, _ArtistResource)
+    assert isinstance(client.notifications, _NotificationResource)
+    assert hasattr(client, "requests")
+    assert hasattr(client, "collages")
+    assert hasattr(client, "user")
+    assert hasattr(client, "inbox")
+
+
+def test_orpheus_client_uses_orpheus_url():
+    client = OrpheusClient(api_key="k")
+    assert "orpheus.network" in client._transport._ajax_url
+
+
+def test_redacted_client_uses_redacted_url():
+    client = RedactedClient(api_key="k")
+    assert "redacted.ch" in client._transport._ajax_url
