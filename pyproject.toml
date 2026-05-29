@@ -39,6 +39,8 @@ classifiers = [
 # ---- Main dependencies ----
 
 dependencies = [
+    "httpx>=0.28",
+    "pydantic>=2.0",
 ]
 
 
@@ -48,11 +50,13 @@ dependencies = [
 dev = [
     "pytest>=9.0.3",
     "pytest-sugar>=1.1.1",
+    "pytest-asyncio>=0.24",
     "ruff>=0.15.12",
     "codespell>=2.4.2",
     "rich>=15.0.0",
     "basedpyright>=1.39.3",
     "funlog>=0.2.1",
+    "python-dotenv>=1.0",
 ]
 
 [project.scripts]
@@ -171,3 +175,4 @@ testpaths = [
 ]
 norecursedirs = []
 filterwarnings = []
+asyncio_mode = "auto"
