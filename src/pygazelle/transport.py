@@ -28,13 +28,35 @@ class GazelleTransport:
         headers: dict[str, str] = {}
         if api_key:
             headers["Authorization"] = f"token {api_key}"
-        self._client = _http_client or httpx.AsyncClient(headers=headers)
+        if _http_client is not None:
+            if headers:
+                _http_client.headers.update(headers)
+            self._client = _http_client
+        else:
+            self._client = httpx.AsyncClient(headers=headers)
+
+    async def _login(self) -> None:
+        response = await self._client.post(
+            self._login_url,
+            data={"username": self._username, "password": self._password, "keeplogged": "1"},
+        )
+        if not response.is_success:
+            raise GazelleAuthError("Login failed")
+        self._logged_in = True
 
     async def request(self, action: str, **params: str | int) -> dict:
+        if self._auth_mode == "cookie" and not self._logged_in:
+            await self._login()
         response = await self._client.get(
             self._ajax_url,
             params={"action": action, **params},
         )
+        if (response.status_code in (401, 403)) and self._auth_mode == "cookie":
+            await self._login()
+            response = await self._client.get(
+                self._ajax_url,
+                params={"action": action, **params},
+            )
         return self._parse(response)
 
     async def download(self, torrent_id: int) -> bytes:

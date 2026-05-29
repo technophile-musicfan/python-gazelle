@@ -65,3 +65,50 @@ async def test_download_returns_bytes():
     async with transport:
         result = await transport.download(42)
     assert result == b"torrent-data"
+
+
+async def test_api_key_sent_as_authorization_header():
+    transport, mock = make_transport([
+        (200, {"status": "success", "response": {}}),
+    ])
+    async with transport:
+        await transport.request("index")
+    assert mock.requests[0].headers.get("authorization") == "token test"
+
+
+async def test_cookie_auth_calls_login_on_first_request():
+    mock = MockTransport([
+        (200, b""),                                          # login POST
+        (200, {"status": "success", "response": {"id": 1}}),  # API call
+    ])
+    client = httpx.AsyncClient(transport=mock)
+    transport = GazelleTransport(
+        "https://example.com",
+        username="user",
+        password="pass",
+        _http_client=client,
+    )
+    async with transport:
+        result = await transport.request("index")
+    assert len(mock.requests) == 2
+    assert mock.requests[0].method == "POST"
+    assert result == {"id": 1}
+
+
+async def test_cookie_auth_reauths_on_401():
+    mock = MockTransport([
+        (200, b""),    # initial login
+        (401, b""),    # 401 on first API call → triggers re-auth
+        (200, b""),    # re-login
+        (200, {"status": "success", "response": {"id": 99}}),  # retry succeeds
+    ])
+    client = httpx.AsyncClient(transport=mock)
+    transport = GazelleTransport(
+        "https://example.com",
+        username="user",
+        password="pass",
+        _http_client=client,
+    )
+    async with transport:
+        result = await transport.request("index")
+    assert result == {"id": 99}
