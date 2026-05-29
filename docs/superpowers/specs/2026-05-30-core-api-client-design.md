@@ -44,7 +44,7 @@ Integration tests support both via env vars:
 
 ### Rate Limiting
 
-Token bucket per client instance. Gazelle trackers enforce ~5 req/s. Requests wait for an available token before firing.
+Token bucket per client instance. Default ~3 req/s (conservative; configurable). Requests wait for an available token before firing.
 
 ### Retry
 
