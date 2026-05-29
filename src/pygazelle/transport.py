@@ -73,17 +73,27 @@ class GazelleTransport:
         if self._auth_mode == "cookie" and not self._logged_in:
             await self._login()
         await self._rate_limiter.acquire()
-        response = await self._client.get(
-            self._ajax_url,
-            params={"action": action, **params},
-        )
-        if (response.status_code in (401, 403)) and self._auth_mode == "cookie":
-            await self._login()
+        last_exc: Exception | None = None
+        for attempt in range(self._max_retries + 1):
             response = await self._client.get(
                 self._ajax_url,
                 params={"action": action, **params},
             )
-        return self._parse(response)
+            if response.status_code in (429, 500, 502, 503, 504):
+                last_exc = (
+                    GazelleRateLimitError("Rate limit exceeded")
+                    if response.status_code == 429
+                    else GazelleAPIError(status_code=response.status_code)
+                )
+                if attempt < self._max_retries:
+                    await asyncio.sleep(2**attempt * 0.1)
+                continue
+            if response.status_code in (401, 403) and self._auth_mode == "cookie":
+                await self._login()
+                continue
+            return self._parse(response)
+        assert last_exc is not None
+        raise last_exc
 
     async def download(self, torrent_id: int) -> bytes:
         response = await self._client.get(

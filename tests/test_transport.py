@@ -2,7 +2,7 @@ import time
 import pytest
 import httpx
 from pygazelle.transport import GazelleTransport, TokenBucket
-from pygazelle.errors import GazelleAPIError, GazelleNotFoundError
+from pygazelle.errors import GazelleAPIError, GazelleNotFoundError, GazelleRateLimitError
 
 
 class MockTransport(httpx.AsyncBaseTransport):
@@ -144,3 +144,43 @@ async def test_transport_respects_custom_rate():
             await transport.request("index")
     elapsed = time.monotonic() - start
     assert elapsed < 1.0
+
+
+async def test_retries_on_429():
+    transport, mock = make_transport([
+        (429, b""),
+        (429, b""),
+        (200, {"status": "success", "response": {"ok": True}}),
+    ], max_retries=3)
+    async with transport:
+        result = await transport.request("index")
+    assert result == {"ok": True}
+    assert mock._index == 3
+
+
+async def test_retries_on_500():
+    transport, mock = make_transport([
+        (500, b""),
+        (200, {"status": "success", "response": {"ok": True}}),
+    ], max_retries=3)
+    async with transport:
+        result = await transport.request("index")
+    assert result == {"ok": True}
+
+
+async def test_raises_rate_limit_error_after_max_retries():
+    transport, _ = make_transport(
+        [(429, b"")] * 4,
+        max_retries=3,
+    )
+    async with transport:
+        with pytest.raises(GazelleRateLimitError):
+            await transport.request("index")
+
+
+async def test_does_not_retry_on_404():
+    transport, mock = make_transport([(404, b""), (200, {"status": "success", "response": {}})])
+    async with transport:
+        with pytest.raises(GazelleNotFoundError):
+            await transport.request("torrent", id=1)
+    assert mock._index == 1  # only one request made
