@@ -1,6 +1,7 @@
+import time
 import pytest
 import httpx
-from pygazelle.transport import GazelleTransport
+from pygazelle.transport import GazelleTransport, TokenBucket
 from pygazelle.errors import GazelleAPIError, GazelleNotFoundError
 
 
@@ -112,3 +113,34 @@ async def test_cookie_auth_reauths_on_401():
     async with transport:
         result = await transport.request("index")
     assert result == {"id": 99}
+
+
+async def test_token_bucket_allows_first_request_immediately():
+    bucket = TokenBucket(rate=3.0)
+    start = time.monotonic()
+    await bucket.acquire()
+    elapsed = time.monotonic() - start
+    assert elapsed < 0.1  # no wait for first token
+
+
+async def test_token_bucket_with_high_rate_does_not_wait():
+    bucket = TokenBucket(rate=1000.0)
+    start = time.monotonic()
+    for _ in range(5):
+        await bucket.acquire()
+    elapsed = time.monotonic() - start
+    assert elapsed < 0.1
+
+
+async def test_transport_respects_custom_rate():
+    # With rate=1000, 5 requests should complete nearly instantly
+    transport, mock = make_transport(
+        [(200, {"status": "success", "response": {}}) for _ in range(5)],
+        rate=1000.0,
+    )
+    start = time.monotonic()
+    async with transport:
+        for _ in range(5):
+            await transport.request("index")
+    elapsed = time.monotonic() - start
+    assert elapsed < 1.0

@@ -1,8 +1,32 @@
 from __future__ import annotations
 
+import asyncio
+import time
+
 import httpx
 
 from .errors import GazelleAPIError, GazelleAuthError, GazelleNotFoundError, GazelleRateLimitError
+
+
+class TokenBucket:
+    def __init__(self, rate: float = 3.0) -> None:
+        self._rate = rate
+        self._tokens = rate
+        self._last_refill = time.monotonic()
+        self._lock = asyncio.Lock()
+
+    async def acquire(self) -> None:
+        async with self._lock:
+            now = time.monotonic()
+            elapsed = now - self._last_refill
+            self._tokens = min(self._rate, self._tokens + elapsed * self._rate)
+            self._last_refill = now
+            if self._tokens < 1.0:
+                wait = (1.0 - self._tokens) / self._rate
+                await asyncio.sleep(wait)
+                self._tokens = 0.0
+            else:
+                self._tokens -= 1.0
 
 
 class GazelleTransport:
@@ -25,6 +49,7 @@ class GazelleTransport:
         self._max_retries = max_retries
         self._auth_mode = "api_key" if api_key else "cookie" if username else None
         self._logged_in = False
+        self._rate_limiter = TokenBucket(rate)
         headers: dict[str, str] = {}
         if api_key:
             headers["Authorization"] = f"token {api_key}"
@@ -47,6 +72,7 @@ class GazelleTransport:
     async def request(self, action: str, **params: str | int) -> dict:
         if self._auth_mode == "cookie" and not self._logged_in:
             await self._login()
+        await self._rate_limiter.acquire()
         response = await self._client.get(
             self._ajax_url,
             params={"action": action, **params},
