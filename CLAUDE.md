@@ -60,6 +60,9 @@ Use for each individual feature once the epic exists.
    > **Transition after brainstorm:** The next step is ALWAYS `/opsx:propose` — prompt the user to run it. Never suggest `writing-plans` here. The brainstorming skill's terminal state says otherwise but it is WRONG for this project.
 
 2. **Propose change spec** — `/opsx:propose` using the design doc + memory → delta spec created in `openspec/changes/`
+
+   > **Transition after propose:** The `opsx:propose` skill ends with "Run `/opsx:apply` to start implementing" — this is WRONG for this project. The next step is ALWAYS step 3 (Verify delta). Do NOT run `/opsx:apply` directly.
+
 3. **Verify delta** — make sure that the delta spec has no delta with the initial design
 4. **Isolate workspace** — `/superpowers:using-git-worktrees`
 
