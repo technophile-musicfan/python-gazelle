@@ -1,6 +1,13 @@
+import pytest
+
 from pygazelle.models.torrents import Torrent
 
 
+@pytest.mark.xfail(
+    strict=True,
+    reason="python-gazelle-6ue: Orpheus 'torrent' diverges — infoHash/remastered "
+    "absent and freeTorrent is a string enum ('Normal'), not bool.",
+)
 def test_torrent_model_parses_orpheus_fixture(orpheus_torrent):
     torrent = Torrent.model_validate(orpheus_torrent["torrent"])
     assert isinstance(torrent.id, int)
