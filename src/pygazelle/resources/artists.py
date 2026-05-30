@@ -12,6 +12,6 @@ class ArtistResource(BaseResource):
         seen: dict[int, ArtistResult] = {}
         for result in data.get("results", []):
             artist_id = result.get("artistId")
-            if artist_id and artist_id not in seen:
+            if artist_id is not None and artist_id not in seen:
                 seen[artist_id] = ArtistResult(id=artist_id, name=result.get("artist", ""))
         return list(seen.values())

@@ -16,17 +16,17 @@ class TokenBucket:
         self._lock = asyncio.Lock()
 
     async def acquire(self) -> None:
-        async with self._lock:
-            now = time.monotonic()
-            elapsed = now - self._last_refill
-            self._tokens = min(self._rate, self._tokens + elapsed * self._rate)
-            self._last_refill = now
-            if self._tokens < 1.0:
+        while True:
+            async with self._lock:
+                now = time.monotonic()
+                elapsed = now - self._last_refill
+                self._tokens = min(self._rate, self._tokens + elapsed * self._rate)
+                self._last_refill = now
+                if self._tokens >= 1.0:
+                    self._tokens -= 1.0
+                    return
                 wait = (1.0 - self._tokens) / self._rate
-                await asyncio.sleep(wait)
-                self._tokens = 0.0
-            else:
-                self._tokens -= 1.0
+            await asyncio.sleep(wait)
 
 
 class GazelleTransport:
@@ -48,6 +48,8 @@ class GazelleTransport:
         self._api_key = api_key
         self._max_retries = max_retries
         self._auth_mode = "api_key" if api_key else "cookie" if username else None
+        if self._auth_mode is None:
+            raise ValueError("Either api_key or username+password must be provided")
         self._logged_in = False
         self._rate_limiter = TokenBucket(rate)
         headers: dict[str, str] = {}
@@ -72,9 +74,9 @@ class GazelleTransport:
     async def request(self, action: str, **params: str | int) -> dict:
         if self._auth_mode == "cookie" and not self._logged_in:
             await self._login()
-        await self._rate_limiter.acquire()
         last_exc: Exception | None = None
         for attempt in range(self._max_retries + 1):
+            await self._rate_limiter.acquire()
             response = await self._client.get(
                 self._ajax_url,
                 params={"action": action, **params},
@@ -89,6 +91,7 @@ class GazelleTransport:
                     await asyncio.sleep(2**attempt * 0.1)
                 continue
             if response.status_code in (401, 403) and self._auth_mode == "cookie":
+                last_exc = GazelleAuthError(f"HTTP {response.status_code}")
                 await self._login()
                 continue
             return self._parse(response)
@@ -96,23 +99,31 @@ class GazelleTransport:
         raise last_exc
 
     async def download(self, torrent_id: int) -> bytes:
-        response = await self._client.get(
-            self._ajax_url,
-            params={"action": "download", "id": torrent_id},
-        )
-        if response.status_code == 404:
-            raise GazelleNotFoundError(f"Torrent {torrent_id} not found")
-        if not response.is_success:
-            raise GazelleAPIError(status_code=response.status_code)
-        return response.content
+        last_exc: Exception | None = None
+        for attempt in range(self._max_retries + 1):
+            await self._rate_limiter.acquire()
+            response = await self._client.get(
+                self._ajax_url,
+                params={"action": "download", "id": torrent_id},
+            )
+            if response.status_code in (500, 502, 503, 504):
+                last_exc = GazelleAPIError(status_code=response.status_code)
+                if attempt < self._max_retries:
+                    await asyncio.sleep(2**attempt * 0.1)
+                continue
+            if response.status_code == 404:
+                raise GazelleNotFoundError(f"Torrent {torrent_id} not found")
+            if not response.is_success:
+                raise GazelleAPIError(status_code=response.status_code)
+            return response.content
+        assert last_exc is not None
+        raise last_exc
 
     def _parse(self, response: httpx.Response) -> dict:
         if response.status_code == 401 or response.status_code == 403:
             raise GazelleAuthError(f"HTTP {response.status_code}")
         if response.status_code == 404:
             raise GazelleNotFoundError("Resource not found")
-        if response.status_code == 429:
-            raise GazelleRateLimitError("Rate limit exceeded")
         if not response.is_success:
             raise GazelleAPIError(status_code=response.status_code)
         data = response.json()

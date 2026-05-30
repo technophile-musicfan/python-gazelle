@@ -20,9 +20,9 @@ class _BackgroundLoop:
         self._started.set()
         self._loop.run_forever()
 
-    def run(self, coro: object) -> object:
+    def run(self, coro: object, timeout: float | None = None) -> object:
         future = asyncio.run_coroutine_threadsafe(coro, self._loop)  # type: ignore[arg-type]
-        return future.result()
+        return future.result(timeout=timeout)
 
 
 class _SyncProxy:
@@ -78,6 +78,7 @@ class GazelleSyncClient:
 
     def close(self) -> None:
         self._bg.run(self._async.aclose())
+        self._bg._loop.call_soon_threadsafe(self._bg._loop.stop)
 
 
 class OrpheusClientSync(GazelleSyncClient):
