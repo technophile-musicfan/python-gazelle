@@ -77,6 +77,16 @@ async def test_api_key_sent_as_authorization_header():
     assert mock.requests[0].headers.get("authorization") == "token test"
 
 
+async def test_api_key_prefix_can_be_overridden_to_bare_key():
+    # RED expects the bare key with no "token " prefix.
+    transport, mock = make_transport([
+        (200, {"status": "success", "response": {}}),
+    ], api_key_prefix="")
+    async with transport:
+        await transport.request("index")
+    assert mock.requests[0].headers.get("authorization") == "test"
+
+
 async def test_cookie_auth_calls_login_on_first_request():
     mock = MockTransport([
         (200, b""),                                          # login POST

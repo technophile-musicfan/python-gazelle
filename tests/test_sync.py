@@ -44,7 +44,7 @@ def test_orpheus_client_sync_wraps_orpheus_client():
 
 def test_redacted_client_sync_wraps_redacted_client():
     client = RedactedClientSync(api_key="k")
-    assert "redacted.ch" in client._async._transport._ajax_url
+    assert "redacted.sh" in client._async._transport._ajax_url
 
 
 def test_sync_client_reuses_connection_across_calls():

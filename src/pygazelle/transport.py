@@ -37,6 +37,8 @@ class GazelleTransport:
         username: str | None = None,
         password: str | None = None,
         api_key: str | None = None,
+        api_key_prefix: str = "token ",
+        user_agent: str = "python-gazelle",
         rate: float = 3.0,
         max_retries: int = 3,
         _http_client: httpx.AsyncClient | None = None,
@@ -52,9 +54,14 @@ class GazelleTransport:
             raise ValueError("Either api_key or username+password must be provided")
         self._logged_in = False
         self._rate_limiter = TokenBucket(rate)
-        headers: dict[str, str] = {}
+        # RED rejects requests without a custom User-Agent (the library default
+        # gets a 401); a UA is harmless/expected on the other trackers too.
+        headers: dict[str, str] = {"User-Agent": user_agent}
         if api_key:
-            headers["Authorization"] = f"token {api_key}"
+            # Trackers diverge on the API-key header: Orpheus expects
+            # "token <key>" (the recommended Gazelle form), while RED expects
+            # the bare key with no prefix. Each client supplies the right one.
+            headers["Authorization"] = f"{api_key_prefix}{api_key}"
         if _http_client is not None:
             if headers:
                 _http_client.headers.update(headers)

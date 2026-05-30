@@ -70,6 +70,19 @@ async def test_user_resource_me_returns_user_model():
     assert user.username == "myuser"
 
 
+async def test_user_resource_me_without_required_ratio():
+    # Orpheus omits requiredRatio; the model must still validate.
+    stub = StubTransport({
+        "index": {
+            "id": 42, "username": "myuser",
+            "userstats": {"uploaded": 1000, "downloaded": 500, "ratio": 2.0},
+        }
+    })
+    resource = UserResource(stub)
+    user = await resource.me()
+    assert user.userstats.required_ratio is None
+
+
 async def test_notification_resource_list_returns_notifications():
     stub = StubTransport({
         "notifications": {
@@ -125,4 +138,14 @@ def test_orpheus_client_uses_orpheus_url():
 
 def test_redacted_client_uses_redacted_url():
     client = RedactedClient(api_key="k")
-    assert "redacted.ch" in client._transport._ajax_url
+    assert "redacted.sh" in client._transport._ajax_url
+
+
+def test_orpheus_client_uses_token_prefixed_auth_header():
+    client = OrpheusClient(api_key="k")
+    assert client._transport._client.headers.get("authorization") == "token k"
+
+
+def test_redacted_client_uses_bare_key_auth_header():
+    client = RedactedClient(api_key="k")
+    assert client._transport._client.headers.get("authorization") == "k"

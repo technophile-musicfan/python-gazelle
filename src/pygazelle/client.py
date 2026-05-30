@@ -10,7 +10,8 @@ from .resources.torrents import TorrentResource
 from .resources.user import UserResource
 
 ORPHEUS_BASE_URL = "https://orpheus.network"
-REDACTED_BASE_URL = "https://redacted.ch"
+# RED migrated from redacted.ch to redacted.sh; the old domain returns HTTP 410.
+REDACTED_BASE_URL = "https://redacted.sh"
 
 
 class GazelleClient:
@@ -99,6 +100,8 @@ class RedactedClient(GazelleClient):
         api_key: str | None = None,
         **kwargs: object,
     ) -> None:
+        # RED expects the bare API key in the Authorization header (no "token " prefix).
+        kwargs.setdefault("api_key_prefix", "")
         super().__init__(
             GazelleTransport(REDACTED_BASE_URL, username=username, password=password, api_key=api_key, **kwargs)
         )
