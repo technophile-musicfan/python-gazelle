@@ -184,3 +184,6 @@ cython_debug/
 .beads-credential-key
 
 .claude
+
+# Captured API fixtures may contain sensitive data (passkeys, authkeys, etc.)
+tests/fixtures/
