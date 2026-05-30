@@ -107,18 +107,44 @@ Use for small tasks that don't warrant a feature workflow or bugfix investigatio
 
 ## Build & Test
 
-_Add your build and test commands here_
+Dependency management is **uv**; tests are **pytest**.
 
 ```bash
-# Example:
-# npm install
-# npm test
+uv sync                                    # Install deps (incl. dev group)
+uv run pytest                              # Full suite
+uv run pytest --ignore=tests/integration   # Unit + model tests only (no .env needed)
+uv run ruff check . && uv run ruff format  # Lint + format (line-length 100)
+uv run basedpyright                        # Type check (src, tests, devtools)
+uv run codespell                           # Spell check
 ```
+
+- `asyncio_mode = "auto"` — write `async def test_*` directly; no `@pytest.mark.asyncio`.
+- Three tiers: **unit** tests always run; **integration** (`tests/integration/`) and **model** (`tests/models/`) tests `pytest.skip` (do NOT fail) when credentials/fixtures are missing.
+
+### If integration or model tests are skipping (missing `.env` / fixtures)
+
+1. **Credentials**: copy `.env.example` → `.env` and fill in tracker creds. Vars: `ORPHEUS_API_KEY`, `ORPHEUS_USERNAME`/`ORPHEUS_PASSWORD`, `REDACTED_API_KEY`, `REDACTED_USERNAME`/`REDACTED_PASSWORD`. An API key alone covers most tests; fill only the tracker(s) you have. Missing vars → those tests skip.
+2. **Fixtures** (needed by `tests/models/`): `uv run python devtools/capture_fixtures.py` populates `tests/fixtures/{orpheus,redacted}/`. They are **gitignored** (real `index.json` contains `passkey`/`authkey`), so each dev regenerates locally — they are never committed. Without them, model tests skip.
 
 ## Architecture Overview
 
-_Add a brief overview of your project architecture_
+Async-first client library for Gazelle trackers (`src/pygazelle/`), Python 3.11+, on **httpx** (async HTTP) + **pydantic v2** (typed models).
+
+- `transport.py` — `GazelleTransport`: the HTTP layer. API-key or cookie/login auth, `TokenBucket` rate limiting, retry/backoff on 429/5xx, parses responses → raises typed errors.
+- `client.py` — `GazelleClient` exposes resource namespaces (`.torrents`, `.artists`, `.user`, …). `OrpheusClient` / `RedactedClient` subclasses wire the per-tracker base URL + auth.
+- `resources/` — one class per endpoint group (extends `BaseResource`); methods call `transport.request(action, **params)` and return models.
+- `models/` — pydantic response models extending `GazelleModel` (`models/base.py`).
+- `sync.py` — synchronous `*Sync` wrappers over the async clients (background event loop + proxy).
+- `errors.py` — `GazelleError` → `GazelleAuthError`, `GazelleRateLimitError`, `GazelleNotFoundError`, `GazelleAPIError`.
+- Public API is re-exported from `pygazelle/__init__.py` — update `__all__` when adding public classes.
+
+Tests mirror this: `tests/test_*.py` (unit, mock httpx transport), `tests/integration/` (live API), `tests/models/` (fixture-driven).
 
 ## Conventions & Patterns
 
-_Add your project-specific conventions here_
+- **Models**: extend `GazelleModel` — pydantic v2 with `alias_generator=to_camel` (API is `camelCase`, fields are `snake_case`), `populate_by_name=True`, `extra="ignore"`. Add fields in snake_case; no per-field alias needed.
+- **New endpoint**: add `resources/<name>.py` (extend `BaseResource`) + its `models/` model + a `@property` on `GazelleClient` + export public types in `__init__.py`.
+- **Tracker divergences**: Orpheus and RED return different schemas/auth — make divergent fields `Optional` or add tracker submodels (issue `python-gazelle-6ue`). Known: RED uses a bare `Authorization: <key>` header + `redacted.sh` + requires a `User-Agent`; Orpheus uses `Authorization: token <key>` and omits `userstats.requiredRatio`. Per-tracker config lives in `GazelleTransport` (`api_key_prefix`, `user_agent`) and the client subclasses.
+- **Style**: ruff (line-length 100; E/F/UP/B/I), basedpyright-clean, codespell-clean. 4-space indent.
+- **Skips are normal**: integration/model tests skipping on absent creds/fixtures is expected, not a failure (see Build & Test).
+- **Live API care**: never loop requests against a tracker on auth errors (ban risk) — verify with a single request and `max_retries=0`; read-only endpoints only.
