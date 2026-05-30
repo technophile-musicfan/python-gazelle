@@ -1,4 +1,4 @@
-from .artists import Artist, ArtistResult
+from .artists import Artist, ArtistResult, ArtistTag
 from .collages import Collage
 from .inbox import Message
 from .notifications import Notification
@@ -7,7 +7,7 @@ from .torrents import Torrent, TorrentGroup, TorrentResult
 from .user import User, UserStats
 
 __all__ = [
-    "Artist", "ArtistResult",
+    "Artist", "ArtistResult", "ArtistTag",
     "Collage",
     "Message",
     "Notification",
