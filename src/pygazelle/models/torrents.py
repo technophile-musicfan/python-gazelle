@@ -16,11 +16,12 @@ class TorrentGroup(GazelleModel):
 
 class Torrent(GazelleModel):
     id: int
-    info_hash: str
+    # Orpheus omits infoHash and remastered; RED includes them.
+    info_hash: str | None = None
     media: str
     format: str
     encoding: str
-    remastered: bool
+    remastered: bool | None = None
     scene: bool
     has_log: bool
     has_cue: bool
@@ -30,7 +31,8 @@ class Torrent(GazelleModel):
     seeders: int
     leechers: int
     snatched: int
-    free_torrent: bool
+    # RED returns a bool; Orpheus returns a freeleech-state string enum (e.g. "Normal").
+    free_torrent: bool | str | None = None
     time: str
     file_path: str
     user_id: int
