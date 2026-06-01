@@ -1,4 +1,4 @@
-from pygazelle.models.torrents import Torrent
+from pygazelle.models.torrents import Torrent, TorrentFile
 
 
 def test_torrent_model_parses_orpheus_fixture(orpheus_torrent):
@@ -17,9 +17,6 @@ def test_torrent_model_parses_redacted_fixture(redacted_torrent):
     torrent = Torrent.model_validate(redacted_torrent["torrent"])
     assert isinstance(torrent.id, int)
     assert isinstance(torrent.format, str)
-
-
-from pygazelle.models.torrents import TorrentFile
 
 
 def test_torrent_parses_file_list_orpheus(orpheus_torrent):
