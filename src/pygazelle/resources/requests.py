@@ -1,5 +1,7 @@
-from .base import BaseResource
+from __future__ import annotations
+
 from ..models.requests import Request, RequestResult
+from .base import BaseResource
 
 
 class RequestResource(BaseResource):

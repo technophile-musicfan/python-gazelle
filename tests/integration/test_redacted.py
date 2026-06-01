@@ -1,5 +1,5 @@
 from pygazelle.client import RedactedClient
-from pygazelle.models import User, Notification
+from pygazelle.models import User
 
 
 async def test_redacted_api_key_auth_returns_user(redacted_api_key):

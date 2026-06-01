@@ -16,5 +16,5 @@ class GazelleNotFoundError(GazelleError):
 
 class GazelleAPIError(GazelleError):
     def __init__(self, status_code: int, message: str = "") -> None:
-        self.status_code = status_code
+        self.status_code: int = status_code
         super().__init__(f"HTTP {status_code}: {message}")

@@ -1,5 +1,7 @@
-from .base import BaseResource
+from __future__ import annotations
+
 from ..models.user import User
+from .base import BaseResource
 
 
 class UserResource(BaseResource):

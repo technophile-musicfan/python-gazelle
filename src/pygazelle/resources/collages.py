@@ -1,5 +1,7 @@
-from .base import BaseResource
+from __future__ import annotations
+
 from ..models.collages import Collage
+from .base import BaseResource
 
 
 class CollageResource(BaseResource):

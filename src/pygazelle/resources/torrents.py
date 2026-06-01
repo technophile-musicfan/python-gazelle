@@ -1,6 +1,8 @@
-from .base import BaseResource
+from __future__ import annotations
+
 from ..errors import GazelleAPIError
 from ..models.torrents import Torrent, TorrentResult
+from .base import BaseResource
 
 
 class TorrentResource(BaseResource):

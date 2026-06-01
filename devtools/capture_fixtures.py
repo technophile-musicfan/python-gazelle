@@ -1,4 +1,5 @@
 """Capture real API response fixtures for model testing. Run once with valid credentials."""
+
 import asyncio
 import json
 import os
@@ -11,19 +12,27 @@ load_dotenv()
 FIXTURE_DIR = Path(__file__).parent.parent / "tests" / "fixtures"
 
 
-async def capture(tracker: str, base_url: str, api_key: str, api_key_prefix: str = "token ") -> None:
+async def capture(
+    tracker: str, base_url: str, api_key: str, api_key_prefix: str = "token "
+) -> None:
     from pygazelle.transport import GazelleTransport
 
     out = FIXTURE_DIR / tracker
     out.mkdir(parents=True, exist_ok=True)
 
-    async with GazelleTransport(base_url, api_key=api_key, api_key_prefix=api_key_prefix, rate=1.0) as t:
+    async with GazelleTransport(
+        base_url, api_key=api_key, api_key_prefix=api_key_prefix, rate=1.0
+    ) as t:
         index = await t.request("index")
-        (out / "index.json").write_text(json.dumps({"status": "success", "response": index}, indent=2))
+        (out / "index.json").write_text(
+            json.dumps({"status": "success", "response": index}, indent=2)
+        )
         print(f"[{tracker}] Captured index")
 
         notifications = await t.request("notifications")
-        (out / "notifications.json").write_text(json.dumps({"status": "success", "response": notifications}, indent=2))
+        (out / "notifications.json").write_text(
+            json.dumps({"status": "success", "response": notifications}, indent=2)
+        )
         print(f"[{tracker}] Captured notifications")
 
         # Get a torrent ID from a search to fetch as fixture
@@ -33,7 +42,9 @@ async def capture(tracker: str, base_url: str, api_key: str, api_key_prefix: str
         if results and results[0].get("torrents"):
             torrent_id = results[0]["torrents"][0]["torrentId"]
             torrent = await t.request("torrent", id=torrent_id)
-            (out / "torrent.json").write_text(json.dumps({"status": "success", "response": torrent}, indent=2))
+            (out / "torrent.json").write_text(
+                json.dumps({"status": "success", "response": torrent}, indent=2)
+            )
             print(f"[{tracker}] Captured torrent {torrent_id}")
 
         # Derive an artist fixture from the torrent's group musicInfo.
@@ -44,7 +55,9 @@ async def capture(tracker: str, base_url: str, api_key: str, api_key_prefix: str
                 artist_id = artists[0].get("id")
         if artist_id:
             artist = await t.request("artist", id=artist_id)
-            (out / "artist.json").write_text(json.dumps({"status": "success", "response": artist}, indent=2))
+            (out / "artist.json").write_text(
+                json.dumps({"status": "success", "response": artist}, indent=2)
+            )
             print(f"[{tracker}] Captured artist {artist_id}")
         else:
             print(f"[{tracker}] WARNING: no artist id found, artist fixture skipped")

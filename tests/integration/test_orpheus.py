@@ -1,5 +1,5 @@
 from pygazelle.client import OrpheusClient
-from pygazelle.models import User, Notification
+from pygazelle.models import Notification, User
 
 
 async def test_orpheus_api_key_auth_returns_user(orpheus_api_key):

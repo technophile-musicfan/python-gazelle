@@ -7,6 +7,11 @@ from .torrents import TorrentResource
 from .user import UserResource
 
 __all__ = [
-    "ArtistResource", "CollageResource", "InboxResource",
-    "NotificationResource", "RequestResource", "TorrentResource", "UserResource",
+    "ArtistResource",
+    "CollageResource",
+    "InboxResource",
+    "NotificationResource",
+    "RequestResource",
+    "TorrentResource",
+    "UserResource",
 ]

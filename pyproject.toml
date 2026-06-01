@@ -160,6 +160,34 @@ reportUnreachable = false
 # reportUnknownVariableType = false
 # reportUnknownArgumentType = false
 
+# Test and devtools code is held to a looser bar than the library itself: pytest
+# fixtures and mock transports are intentionally loosely typed, and tests
+# legitimately introspect private attributes. We keep the semantically valuable
+# checks on (reportArgumentType, reportCallIssue, reportOptionalMemberAccess,
+# etc.) and only relax the "annotate everything / don't touch privates" noise.
+[[tool.basedpyright.executionEnvironments]]
+root = "tests"
+reportUnknownParameterType = false
+reportMissingParameterType = false
+reportUnknownArgumentType = false
+reportUnknownVariableType = false
+reportUnknownMemberType = false
+reportMissingTypeArgument = false
+reportUnannotatedClassAttribute = false
+reportImplicitOverride = false
+reportPrivateUsage = false
+reportUnusedParameter = false
+reportUnusedVariable = false
+
+[[tool.basedpyright.executionEnvironments]]
+root = "devtools"
+reportUnknownParameterType = false
+reportMissingParameterType = false
+reportUnknownArgumentType = false
+reportUnknownVariableType = false
+reportUnknownMemberType = false
+reportMissingTypeArgument = false
+
 [tool.codespell]
 # Add here as needed:
 # ignore-words-list = "foo,bar"

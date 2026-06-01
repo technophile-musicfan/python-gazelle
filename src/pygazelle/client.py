@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from .transport import GazelleTransport
+from typing import Unpack
+
 from .resources.artists import ArtistResource
 from .resources.collages import CollageResource
 from .resources.inbox import InboxResource
@@ -8,6 +9,7 @@ from .resources.notifications import NotificationResource
 from .resources.requests import RequestResource
 from .resources.torrents import TorrentResource
 from .resources.user import UserResource
+from .transport import GazelleTransport, TransportOptions
 
 ORPHEUS_BASE_URL = "https://orpheus.network"
 # RED migrated from redacted.ch to redacted.sh; the old domain returns HTTP 410.
@@ -16,7 +18,7 @@ REDACTED_BASE_URL = "https://redacted.sh"
 
 class GazelleClient:
     def __init__(self, transport: GazelleTransport) -> None:
-        self._transport = transport
+        self._transport: GazelleTransport = transport
         self._torrents: TorrentResource | None = None
         self._artists: ArtistResource | None = None
         self._requests: RequestResource | None = None
@@ -84,10 +86,12 @@ class OrpheusClient(GazelleClient):
         username: str | None = None,
         password: str | None = None,
         api_key: str | None = None,
-        **kwargs: object,
+        **kwargs: Unpack[TransportOptions],
     ) -> None:
         super().__init__(
-            GazelleTransport(ORPHEUS_BASE_URL, username=username, password=password, api_key=api_key, **kwargs)
+            GazelleTransport(
+                ORPHEUS_BASE_URL, username=username, password=password, api_key=api_key, **kwargs
+            )
         )
 
 
@@ -98,10 +102,12 @@ class RedactedClient(GazelleClient):
         username: str | None = None,
         password: str | None = None,
         api_key: str | None = None,
-        **kwargs: object,
+        **kwargs: Unpack[TransportOptions],
     ) -> None:
         # RED expects the bare API key in the Authorization header (no "token " prefix).
         kwargs.setdefault("api_key_prefix", "")
         super().__init__(
-            GazelleTransport(REDACTED_BASE_URL, username=username, password=password, api_key=api_key, **kwargs)
+            GazelleTransport(
+                REDACTED_BASE_URL, username=username, password=password, api_key=api_key, **kwargs
+            )
         )

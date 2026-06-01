@@ -7,11 +7,19 @@ from .torrents import BrowseTorrent, Torrent, TorrentFile, TorrentGroup, Torrent
 from .user import User, UserStats
 
 __all__ = [
-    "Artist", "ArtistResult", "ArtistTag",
+    "Artist",
+    "ArtistResult",
+    "ArtistTag",
     "Collage",
     "Message",
     "Notification",
-    "Request", "RequestResult",
-    "BrowseTorrent", "Torrent", "TorrentFile", "TorrentGroup", "TorrentResult",
-    "User", "UserStats",
+    "Request",
+    "RequestResult",
+    "BrowseTorrent",
+    "Torrent",
+    "TorrentFile",
+    "TorrentGroup",
+    "TorrentResult",
+    "User",
+    "UserStats",
 ]

@@ -1,8 +1,9 @@
 import httpx
-from pygazelle.sync import GazelleSyncClient, OrpheusClientSync, RedactedClientSync
+
 from pygazelle.client import GazelleClient
-from pygazelle.transport import GazelleTransport
 from pygazelle.models import User
+from pygazelle.sync import GazelleSyncClient, OrpheusClientSync, RedactedClientSync
+from pygazelle.transport import GazelleTransport
 
 
 class MockHttpTransport(httpx.AsyncBaseTransport):
@@ -20,13 +21,21 @@ def make_sync_client(response_json: dict) -> GazelleSyncClient:
 
 
 def test_sync_client_returns_result_without_await():
-    client = make_sync_client({
-        "status": "success",
-        "response": {
-            "id": 1, "username": "user",
-            "userstats": {"uploaded": 100, "downloaded": 50, "ratio": 2.0, "requiredRatio": 0.6},
-        },
-    })
+    client = make_sync_client(
+        {
+            "status": "success",
+            "response": {
+                "id": 1,
+                "username": "user",
+                "userstats": {
+                    "uploaded": 100,
+                    "downloaded": 50,
+                    "ratio": 2.0,
+                    "requiredRatio": 0.6,
+                },
+            },
+        }
+    )
     user = client.user.me()
     assert isinstance(user, User)
     assert user.username == "user"
@@ -48,11 +57,16 @@ def test_redacted_client_sync_wraps_redacted_client():
 
 
 def test_sync_client_reuses_connection_across_calls():
-    client = make_sync_client({
-        "status": "success",
-        "response": {"id": 1, "username": "u",
-                     "userstats": {"uploaded": 0, "downloaded": 0, "ratio": 0.0, "requiredRatio": 0.0}},
-    })
+    client = make_sync_client(
+        {
+            "status": "success",
+            "response": {
+                "id": 1,
+                "username": "u",
+                "userstats": {"uploaded": 0, "downloaded": 0, "ratio": 0.0, "requiredRatio": 0.0},
+            },
+        }
+    )
     for _ in range(3):
         user = client.user.me()
         assert isinstance(user, User)

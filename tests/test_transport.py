@@ -1,8 +1,10 @@
 import time
-import pytest
+
 import httpx
-from pygazelle.transport import GazelleTransport, TokenBucket
+import pytest
+
 from pygazelle.errors import GazelleAPIError, GazelleNotFoundError, GazelleRateLimitError
+from pygazelle.transport import GazelleTransport, TokenBucket
 
 
 class MockTransport(httpx.AsyncBaseTransport):
@@ -20,26 +22,34 @@ class MockTransport(httpx.AsyncBaseTransport):
         return httpx.Response(status, json=body)
 
 
-def make_transport(responses: list[tuple[int, dict | bytes]], **kwargs) -> tuple[GazelleTransport, MockTransport]:
+def make_transport(
+    responses: list[tuple[int, dict | bytes]], **kwargs
+) -> tuple[GazelleTransport, MockTransport]:
     mock = MockTransport(responses)
     client = httpx.AsyncClient(transport=mock)
-    transport = GazelleTransport("https://example.com", api_key="test", _http_client=client, **kwargs)
+    transport = GazelleTransport(
+        "https://example.com", api_key="test", _http_client=client, **kwargs
+    )
     return transport, mock
 
 
 async def test_request_returns_response_dict():
-    transport, _ = make_transport([
-        (200, {"status": "success", "response": {"id": 1, "name": "Album"}}),
-    ])
+    transport, _ = make_transport(
+        [
+            (200, {"status": "success", "response": {"id": 1, "name": "Album"}}),
+        ]
+    )
     async with transport:
         result = await transport.request("torrent", id=1)
     assert result == {"id": 1, "name": "Album"}
 
 
 async def test_request_raises_on_failure_status():
-    transport, _ = make_transport([
-        (200, {"status": "failure", "error": "bad id parameter"}),
-    ])
+    transport, _ = make_transport(
+        [
+            (200, {"status": "failure", "error": "bad id parameter"}),
+        ]
+    )
     async with transport:
         with pytest.raises(GazelleAPIError):
             await transport.request("torrent", id=999)
@@ -53,9 +63,11 @@ async def test_request_raises_not_found_on_404():
 
 
 async def test_request_sends_action_as_query_param():
-    transport, mock = make_transport([
-        (200, {"status": "success", "response": {}}),
-    ])
+    transport, mock = make_transport(
+        [
+            (200, {"status": "success", "response": {}}),
+        ]
+    )
     async with transport:
         await transport.request("index")
     assert b"action=index" in mock.requests[0].url.query
@@ -69,9 +81,11 @@ async def test_download_returns_bytes():
 
 
 async def test_api_key_sent_as_authorization_header():
-    transport, mock = make_transport([
-        (200, {"status": "success", "response": {}}),
-    ])
+    transport, mock = make_transport(
+        [
+            (200, {"status": "success", "response": {}}),
+        ]
+    )
     async with transport:
         await transport.request("index")
     assert mock.requests[0].headers.get("authorization") == "token test"
@@ -79,19 +93,24 @@ async def test_api_key_sent_as_authorization_header():
 
 async def test_api_key_prefix_can_be_overridden_to_bare_key():
     # RED expects the bare key with no "token " prefix.
-    transport, mock = make_transport([
-        (200, {"status": "success", "response": {}}),
-    ], api_key_prefix="")
+    transport, mock = make_transport(
+        [
+            (200, {"status": "success", "response": {}}),
+        ],
+        api_key_prefix="",
+    )
     async with transport:
         await transport.request("index")
     assert mock.requests[0].headers.get("authorization") == "test"
 
 
 async def test_cookie_auth_calls_login_on_first_request():
-    mock = MockTransport([
-        (200, b""),                                          # login POST
-        (200, {"status": "success", "response": {"id": 1}}),  # API call
-    ])
+    mock = MockTransport(
+        [
+            (200, b""),  # login POST
+            (200, {"status": "success", "response": {"id": 1}}),  # API call
+        ]
+    )
     client = httpx.AsyncClient(transport=mock)
     transport = GazelleTransport(
         "https://example.com",
@@ -107,12 +126,14 @@ async def test_cookie_auth_calls_login_on_first_request():
 
 
 async def test_cookie_auth_reauths_on_401():
-    mock = MockTransport([
-        (200, b""),    # initial login
-        (401, b""),    # 401 on first API call → triggers re-auth
-        (200, b""),    # re-login
-        (200, {"status": "success", "response": {"id": 99}}),  # retry succeeds
-    ])
+    mock = MockTransport(
+        [
+            (200, b""),  # initial login
+            (401, b""),  # 401 on first API call → triggers re-auth
+            (200, b""),  # re-login
+            (200, {"status": "success", "response": {"id": 99}}),  # retry succeeds
+        ]
+    )
     client = httpx.AsyncClient(transport=mock)
     transport = GazelleTransport(
         "https://example.com",
@@ -157,11 +178,14 @@ async def test_transport_respects_custom_rate():
 
 
 async def test_retries_on_429():
-    transport, mock = make_transport([
-        (429, b""),
-        (429, b""),
-        (200, {"status": "success", "response": {"ok": True}}),
-    ], max_retries=3)
+    transport, mock = make_transport(
+        [
+            (429, b""),
+            (429, b""),
+            (200, {"status": "success", "response": {"ok": True}}),
+        ],
+        max_retries=3,
+    )
     async with transport:
         result = await transport.request("index")
     assert result == {"ok": True}
@@ -169,10 +193,13 @@ async def test_retries_on_429():
 
 
 async def test_retries_on_500():
-    transport, mock = make_transport([
-        (500, b""),
-        (200, {"status": "success", "response": {"ok": True}}),
-    ], max_retries=3)
+    transport, mock = make_transport(
+        [
+            (500, b""),
+            (200, {"status": "success", "response": {"ok": True}}),
+        ],
+        max_retries=3,
+    )
     async with transport:
         result = await transport.request("index")
     assert result == {"ok": True}

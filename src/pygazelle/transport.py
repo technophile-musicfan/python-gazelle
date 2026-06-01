@@ -2,12 +2,35 @@ from __future__ import annotations
 
 import asyncio
 import time
+from typing import Any, Protocol, TypedDict, final
 
 import httpx
 
 from .errors import GazelleAPIError, GazelleAuthError, GazelleNotFoundError, GazelleRateLimitError
 
 
+class SupportsTransport(Protocol):
+    """Structural interface the resources depend on.
+
+    Both :class:`GazelleTransport` and the test stubs satisfy this, so resources
+    are decoupled from the concrete transport implementation.
+    """
+
+    async def request(self, action: str, **params: str | int) -> dict[str, Any]: ...
+
+    async def download(self, torrent_id: int) -> bytes: ...
+
+
+class TransportOptions(TypedDict, total=False):
+    """Optional :class:`GazelleTransport` settings the client subclasses forward."""
+
+    api_key_prefix: str
+    user_agent: str
+    rate: float
+    max_retries: int
+
+
+@final
 class TokenBucket:
     def __init__(self, rate: float = 3.0) -> None:
         self._rate = rate
@@ -29,6 +52,7 @@ class TokenBucket:
             await asyncio.sleep(wait)
 
 
+@final
 class GazelleTransport:
     def __init__(
         self,
@@ -78,7 +102,7 @@ class GazelleTransport:
             raise GazelleAuthError("Login failed")
         self._logged_in = True
 
-    async def request(self, action: str, **params: str | int) -> dict:
+    async def request(self, action: str, **params: str | int) -> dict[str, Any]:
         if self._auth_mode == "cookie" and not self._logged_in:
             await self._login()
         last_exc: Exception | None = None
@@ -126,7 +150,7 @@ class GazelleTransport:
         assert last_exc is not None
         raise last_exc
 
-    def _parse(self, response: httpx.Response) -> dict:
+    def _parse(self, response: httpx.Response) -> dict[str, Any]:
         if response.status_code == 401 or response.status_code == 403:
             raise GazelleAuthError(f"HTTP {response.status_code}")
         if response.status_code == 404:

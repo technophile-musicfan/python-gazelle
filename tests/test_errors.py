@@ -1,10 +1,9 @@
-import pytest
 from pygazelle.errors import (
-    GazelleError,
-    GazelleAuthError,
-    GazelleRateLimitError,
-    GazelleNotFoundError,
     GazelleAPIError,
+    GazelleAuthError,
+    GazelleError,
+    GazelleNotFoundError,
+    GazelleRateLimitError,
 )
 
 

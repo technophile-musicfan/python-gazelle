@@ -1,5 +1,7 @@
-from .base import BaseResource
+from __future__ import annotations
+
 from ..models.inbox import Message
+from .base import BaseResource
 
 
 class InboxResource(BaseResource):

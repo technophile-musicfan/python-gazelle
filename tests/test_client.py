@@ -1,11 +1,8 @@
-import pytest
-import httpx
-from pygazelle.transport import GazelleTransport
-from pygazelle.resources.torrents import TorrentResource
+from pygazelle.models import Artist, Notification, Torrent, User
 from pygazelle.resources.artists import ArtistResource
-from pygazelle.resources.user import UserResource
 from pygazelle.resources.notifications import NotificationResource
-from pygazelle.models import Torrent, Artist, User, Notification
+from pygazelle.resources.torrents import TorrentResource
+from pygazelle.resources.user import UserResource
 
 
 class StubTransport:
@@ -20,19 +17,35 @@ class StubTransport:
 
 
 async def test_torrent_resource_get_returns_torrent_model():
-    stub = StubTransport({
-        "torrent": {
-            "group": {"id": 1, "name": "Album", "year": 2020, "tags": [], "artists": []},
+    stub = StubTransport(
+        {
             "torrent": {
-                "id": 100, "infoHash": "ABC", "media": "CD", "format": "FLAC",
-                "encoding": "Lossless", "remastered": False, "scene": False,
-                "hasLog": True, "hasCue": True, "logScore": 100, "fileCount": 12,
-                "size": 500000000, "seeders": 10, "leechers": 1, "snatched": 50,
-                "freeTorrent": False, "time": "2020-01-01 00:00:00",
-                "filePath": "Artist - Album", "userId": 1, "username": "uploader",
-            },
+                "group": {"id": 1, "name": "Album", "year": 2020, "tags": [], "artists": []},
+                "torrent": {
+                    "id": 100,
+                    "infoHash": "ABC",
+                    "media": "CD",
+                    "format": "FLAC",
+                    "encoding": "Lossless",
+                    "remastered": False,
+                    "scene": False,
+                    "hasLog": True,
+                    "hasCue": True,
+                    "logScore": 100,
+                    "fileCount": 12,
+                    "size": 500000000,
+                    "seeders": 10,
+                    "leechers": 1,
+                    "snatched": 50,
+                    "freeTorrent": False,
+                    "time": "2020-01-01 00:00:00",
+                    "filePath": "Artist - Album",
+                    "userId": 1,
+                    "username": "uploader",
+                },
+            }
         }
-    })
+    )
     resource = TorrentResource(stub)
     torrent = await resource.get(100)
     assert isinstance(torrent, Torrent)
@@ -48,9 +61,9 @@ async def test_torrent_resource_download_returns_bytes():
 
 
 async def test_artist_resource_get_returns_artist_model():
-    stub = StubTransport({
-        "artist": {"id": 1, "name": "Radiohead", "body": "", "image": "", "tags": []}
-    })
+    stub = StubTransport(
+        {"artist": {"id": 1, "name": "Radiohead", "body": "", "image": "", "tags": []}}
+    )
     resource = ArtistResource(stub)
     artist = await resource.get(1)
     assert isinstance(artist, Artist)
@@ -58,12 +71,20 @@ async def test_artist_resource_get_returns_artist_model():
 
 
 async def test_user_resource_me_returns_user_model():
-    stub = StubTransport({
-        "index": {
-            "id": 42, "username": "myuser",
-            "userstats": {"uploaded": 1000, "downloaded": 500, "ratio": 2.0, "requiredRatio": 0.6},
+    stub = StubTransport(
+        {
+            "index": {
+                "id": 42,
+                "username": "myuser",
+                "userstats": {
+                    "uploaded": 1000,
+                    "downloaded": 500,
+                    "ratio": 2.0,
+                    "requiredRatio": 0.6,
+                },
+            }
         }
-    })
+    )
     resource = UserResource(stub)
     user = await resource.me()
     assert isinstance(user, User)
@@ -72,28 +93,37 @@ async def test_user_resource_me_returns_user_model():
 
 async def test_user_resource_me_without_required_ratio():
     # Orpheus omits requiredRatio; the model must still validate.
-    stub = StubTransport({
-        "index": {
-            "id": 42, "username": "myuser",
-            "userstats": {"uploaded": 1000, "downloaded": 500, "ratio": 2.0},
+    stub = StubTransport(
+        {
+            "index": {
+                "id": 42,
+                "username": "myuser",
+                "userstats": {"uploaded": 1000, "downloaded": 500, "ratio": 2.0},
+            }
         }
-    })
+    )
     resource = UserResource(stub)
     user = await resource.me()
+    assert user.userstats is not None
     assert user.userstats.required_ratio is None
 
 
 async def test_notification_resource_list_returns_notifications():
-    stub = StubTransport({
-        "notifications": {
-            "results": [
-                {
-                    "torrentId": 1, "torrentGroupId": 10, "groupName": "Album",
-                    "format": "FLAC", "notificationType": "Upload Deleted",
-                }
-            ]
+    stub = StubTransport(
+        {
+            "notifications": {
+                "results": [
+                    {
+                        "torrentId": 1,
+                        "torrentGroupId": 10,
+                        "groupName": "Album",
+                        "format": "FLAC",
+                        "notificationType": "Upload Deleted",
+                    }
+                ]
+            }
         }
-    })
+    )
     resource = NotificationResource(stub)
     notifications = await resource.list()
     assert len(notifications) == 1
@@ -102,11 +132,12 @@ async def test_notification_resource_list_returns_notifications():
 
 
 import httpx as _httpx
+
 from pygazelle.client import GazelleClient, OrpheusClient, RedactedClient
-from pygazelle.transport import GazelleTransport as _GazelleTransport
-from pygazelle.resources.torrents import TorrentResource as _TorrentResource
 from pygazelle.resources.artists import ArtistResource as _ArtistResource
 from pygazelle.resources.notifications import NotificationResource as _NotificationResource
+from pygazelle.resources.torrents import TorrentResource as _TorrentResource
+from pygazelle.transport import GazelleTransport as _GazelleTransport
 
 
 class _FakeHttpTransport(_httpx.AsyncBaseTransport):

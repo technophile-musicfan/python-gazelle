@@ -1,5 +1,7 @@
-from .base import BaseResource
+from __future__ import annotations
+
 from ..models.artists import Artist, ArtistResult
+from .base import BaseResource
 
 
 class ArtistResource(BaseResource):

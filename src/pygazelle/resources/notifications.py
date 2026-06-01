@@ -1,5 +1,7 @@
-from .base import BaseResource
+from __future__ import annotations
+
 from ..models.notifications import Notification
+from .base import BaseResource
 
 
 class NotificationResource(BaseResource):
