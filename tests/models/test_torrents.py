@@ -1,4 +1,4 @@
-from pygazelle.models.torrents import Torrent, TorrentFile
+from pygazelle.models.torrents import BrowseTorrent, Torrent, TorrentFile, TorrentResult
 
 
 def test_torrent_model_parses_orpheus_fixture(orpheus_torrent):
@@ -67,3 +67,24 @@ def test_torrent_trumpable_defaults_when_absent():
     )
     assert torrent.trumpable is None
     assert torrent.trumpable_reasons == []
+
+
+def test_browse_result_parses_nested_torrents_orpheus(orpheus_browse):
+    results = orpheus_browse["results"]
+    assert results, "fixture has no results"
+    result = TorrentResult.model_validate(results[0])
+    assert result.torrents, "expected nested torrents[]"
+    t = result.torrents[0]
+    assert isinstance(t, BrowseTorrent)
+    assert isinstance(t.torrent_id, int)
+    assert isinstance(t.size, int)
+    assert isinstance(t.file_count, int)
+    assert isinstance(t.format, str)
+
+
+def test_browse_result_parses_nested_torrents_redacted(redacted_browse):
+    results = redacted_browse["results"]
+    assert results, "fixture has no results"
+    result = TorrentResult.model_validate(results[0])
+    assert result.torrents
+    assert isinstance(result.torrents[0].torrent_id, int)

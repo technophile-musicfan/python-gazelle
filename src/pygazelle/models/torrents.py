@@ -71,6 +71,15 @@ class Torrent(GazelleModel):
         return _parse_file_list(self.file_list) if self.file_list else []
 
 
+class BrowseTorrent(GazelleModel):
+    torrent_id: int  # "torrentId"
+    size: int
+    file_count: int  # "fileCount"
+    format: str
+    encoding: str
+    media: str
+
+
 class TorrentResult(GazelleModel):
     group_id: int
     group_name: str
@@ -81,3 +90,4 @@ class TorrentResult(GazelleModel):
     total_seeders: int
     total_leechers: int
     total_snatched: int
+    torrents: list[BrowseTorrent] = []
