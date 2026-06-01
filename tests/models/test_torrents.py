@@ -47,3 +47,23 @@ def test_torrent_files_empty_when_no_file_list():
         }
     )
     assert torrent.files == []
+
+
+def test_torrent_exposes_trumpable_orpheus(orpheus_torrent):
+    torrent = Torrent.model_validate(orpheus_torrent["torrent"])
+    assert torrent.trumpable is False
+    assert torrent.trumpable_reasons == []
+
+
+def test_torrent_trumpable_defaults_when_absent():
+    torrent = Torrent.model_validate(
+        {
+            "id": 1, "media": "CD", "format": "FLAC", "encoding": "Lossless",
+            "scene": False, "hasLog": False, "hasCue": False, "logScore": 0,
+            "fileCount": 0, "size": 0, "seeders": 0, "leechers": 0, "snatched": 0,
+            "freeTorrent": False, "time": "t", "filePath": "p", "userId": 1,
+            "username": "u",
+        }
+    )
+    assert torrent.trumpable is None
+    assert torrent.trumpable_reasons == []

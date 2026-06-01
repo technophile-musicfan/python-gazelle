@@ -63,6 +63,8 @@ class Torrent(GazelleModel):
     username: str
     group: TorrentGroup | None = None
     file_list: str | None = None  # raw "name{{{size}}}|||..." ("fileList")
+    trumpable: bool | None = None
+    trumpable_reasons: list[str] = []
 
     @property
     def files(self) -> list[TorrentFile]:
