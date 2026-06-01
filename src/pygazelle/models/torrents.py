@@ -1,4 +1,28 @@
+import html
+
 from .base import GazelleModel
+
+
+class TorrentFile(GazelleModel):
+    path: str
+    size: int
+
+
+def _parse_file_list(raw: str) -> list[TorrentFile]:
+    """Parse a Gazelle ``fileList`` ("name{{{size}}}|||name{{{size}}}") string.
+
+    Names are HTML-entity-encoded in the API (e.g. ``&rsquo;``) and are decoded
+    here so they line up with file names reported elsewhere (e.g. qBittorrent).
+    """
+    files: list[TorrentFile] = []
+    for entry in raw.split("|||"):
+        entry = entry.strip()
+        if not entry:
+            continue
+        name, _, rest = entry.partition("{{{")
+        size = int(rest.rstrip("}").strip())
+        files.append(TorrentFile(path=html.unescape(name), size=size))
+    return files
 
 
 class TorrentArtist(GazelleModel):
@@ -38,6 +62,11 @@ class Torrent(GazelleModel):
     user_id: int
     username: str
     group: TorrentGroup | None = None
+    file_list: str | None = None  # raw "name{{{size}}}|||..." ("fileList")
+
+    @property
+    def files(self) -> list[TorrentFile]:
+        return _parse_file_list(self.file_list) if self.file_list else []
 
 
 class TorrentResult(GazelleModel):
