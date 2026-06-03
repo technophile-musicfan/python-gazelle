@@ -8,6 +8,7 @@ from .resources.collages import CollageResource
 from .resources.inbox import InboxResource
 from .resources.notifications import NotificationResource
 from .resources.requests import RequestResource
+from .resources.site import SiteResource
 from .resources.subscriptions import SubscriptionResource
 from .resources.torrents import TorrentResource
 from .resources.user import UserResource
@@ -30,6 +31,7 @@ class GazelleClient:
         self._notifications: NotificationResource | None = None
         self._bookmarks: BookmarkResource | None = None
         self._subscriptions: SubscriptionResource | None = None
+        self._site: SiteResource | None = None
 
     @property
     def torrents(self) -> TorrentResource:
@@ -84,6 +86,12 @@ class GazelleClient:
         if self._subscriptions is None:
             self._subscriptions = SubscriptionResource(self._transport)
         return self._subscriptions
+
+    @property
+    def site(self) -> SiteResource:
+        if self._site is None:
+            self._site = SiteResource(self._transport)
+        return self._site
 
     async def aclose(self) -> None:
         await self._transport.aclose()

@@ -4,12 +4,14 @@ import pytest
 
 from pygazelle.errors import GazelleAPIError
 from pygazelle.models import (
+    Announcements,
     Artist,
     BookmarkedArtist,
     BookmarkedTorrentGroup,
     ForumSubscription,
     Notification,
     SimilarArtist,
+    Top10Category,
     Torrent,
     TorrentGroup,
     User,
@@ -20,6 +22,7 @@ from pygazelle.models import (
 from pygazelle.resources.artists import ArtistResource
 from pygazelle.resources.bookmarks import BookmarkResource
 from pygazelle.resources.notifications import NotificationResource
+from pygazelle.resources.site import SiteResource
 from pygazelle.resources.subscriptions import SubscriptionResource
 from pygazelle.resources.torrents import TorrentResource
 from pygazelle.resources.user import UserResource
@@ -395,6 +398,65 @@ async def test_subscription_resource_list_empty_when_absent():
     assert await SubscriptionResource(stub).list() == []
 
 
+async def test_site_resource_top10_returns_categories():
+    # top10 returns a bare JSON array of category objects.
+    stub = StubTransport(
+        {
+            "top10": [
+                {
+                    "caption": "Most Active Torrents",
+                    "tag": "day",
+                    "limit": 10,
+                    "results": [{"torrentId": 1, "groupName": "Album"}],
+                }
+            ]
+        }
+    )
+    cats = await SiteResource(stub).top10()
+    assert len(cats) == 1
+    assert isinstance(cats[0], Top10Category)
+    assert cats[0].tag == "day"
+    # results are kept as raw dicts (shape varies by type).
+    assert cats[0].results[0]["torrentId"] == 1
+
+
+async def test_site_resource_top10_defaults_to_torrents():
+    transport = CapturingTransport({"top10": []})
+    await SiteResource(transport).top10()
+    assert transport.calls == {"type": "torrents"}
+
+
+async def test_site_resource_top10_passes_type_and_limit():
+    transport = CapturingTransport({"top10": []})
+    await SiteResource(transport).top10(type="tags", limit=100)
+    assert transport.calls == {"type": "tags", "limit": 100}
+
+
+async def test_site_resource_announcements_returns_news_and_blog():
+    stub = StubTransport(
+        {
+            "announcements": {
+                "announcements": [{"newsId": 1, "title": "Hi", "body": "b", "newsTime": "2026"}],
+                "blogPosts": [
+                    {"blogId": 2, "title": "Blog", "body": "bb", "blogTime": "2026", "threadId": 9}
+                ],
+            }
+        }
+    )
+    result = await SiteResource(stub).announcements()
+    assert isinstance(result, Announcements)
+    assert result.announcements[0].news_id == 1
+    assert result.blog_posts[0].blog_id == 2
+    assert result.blog_posts[0].thread_id == 9
+
+
+async def test_site_resource_announcements_empty_defaults():
+    stub = StubTransport({"announcements": {}})
+    result = await SiteResource(stub).announcements()
+    assert result.announcements == []
+    assert result.blog_posts == []
+
+
 async def test_user_resource_me_returns_user_model():
     stub = StubTransport(
         {
@@ -487,6 +549,7 @@ def test_client_exposes_resource_namespaces():
     assert hasattr(client, "inbox")
     assert isinstance(client.bookmarks, BookmarkResource)
     assert isinstance(client.subscriptions, SubscriptionResource)
+    assert isinstance(client.site, SiteResource)
 
 
 def test_orpheus_client_uses_orpheus_url():

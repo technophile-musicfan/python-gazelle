@@ -96,6 +96,10 @@ class GazelleSyncClient:
     def subscriptions(self) -> _SyncProxy:
         return _SyncProxy(self._async.subscriptions, self._bg)
 
+    @property
+    def site(self) -> _SyncProxy:
+        return _SyncProxy(self._async.site, self._bg)
+
     def close(self) -> None:
         self._bg.run(self._async.aclose())
         self._bg.stop()
