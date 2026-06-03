@@ -17,6 +17,8 @@ Response models are [pydantic v2](https://docs.pydantic.dev/) classes. The API i
 
 ::: pygazelle.models.torrents.CollageRef
 
+::: pygazelle.models.torrents.MusicInfo
+
 ## Artists
 
 ::: pygazelle.models.artists.Artist

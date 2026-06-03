@@ -46,6 +46,26 @@ class CollageRef(GazelleModel):
     num_torrents: int | None = None
 
 
+class MusicInfo(GazelleModel):
+    """The group's ``musicInfo`` credit block (action=torrent/torrentgroup).
+
+    Each role is a list of artist credits. ``artists`` is also surfaced at the
+    top level of :class:`TorrentGroup` (``artists``); the other roles are only
+    available here. Roles a tracker omits default to ``[]`` (RED omits
+    ``arranger``).
+    """
+
+    artists: list[TorrentArtist] = []
+    # "with" is a Python keyword — exposed as with_ (alias the API key).
+    with_: list[TorrentArtist] = Field(default_factory=list, alias="with")
+    remixed_by: list[TorrentArtist] = []
+    composers: list[TorrentArtist] = []
+    conductor: list[TorrentArtist] = []
+    dj: list[TorrentArtist] = []
+    producer: list[TorrentArtist] = []
+    arranger: list[TorrentArtist] = []
+
+
 class TorrentGroup(GazelleModel):
     id: int
     name: str
@@ -74,6 +94,9 @@ class TorrentGroup(GazelleModel):
     # Collage memberships (RED group block; Orpheus omits).
     collages: list[CollageRef] = []
     personal_collages: list[CollageRef] = []
+    # Full credit block; `artists` above is lifted from musicInfo.artists, but
+    # the other roles (with/remixedBy/composers/...) are only exposed here.
+    music_info: MusicInfo | None = None
     # Populated by TorrentResource.get_group(); empty when this group is embedded
     # in a single Torrent (action=torrent).
     torrents: list["Torrent"] = []
