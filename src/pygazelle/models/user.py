@@ -9,6 +9,12 @@ class UserStats(GazelleModel):
     ratio: float
     # Orpheus omits requiredRatio from its index response; RED includes it.
     required_ratio: float | None = None
+    # Orpheus-only in the index userstats; RED's index omits these.
+    tokens: int | None = None  # freeleech tokens
+    bonus_points: int | None = None
+    bonus_points_per_hour: float | None = None
+    # `class` is a Python keyword, so it needs an explicit alias.
+    user_class: str | None = Field(default=None, alias="class")
 
 
 class User(GazelleModel):

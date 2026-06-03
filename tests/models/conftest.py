@@ -50,6 +50,11 @@ def orpheus_index():
 
 
 @pytest.fixture
+def redacted_index():
+    return load_fixture("redacted", "index")
+
+
+@pytest.fixture
 def orpheus_notifications():
     return load_fixture("orpheus", "notifications")
 
