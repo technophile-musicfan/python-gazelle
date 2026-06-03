@@ -97,6 +97,7 @@ Each client exposes resource namespaces:
 | `client.notifications` | `list(**params)` |
 | `client.bookmarks` | `torrents()`, `artists()` |
 | `client.subscriptions` | `list()` |
+| `client.site` | `top10(type, limit)`, `announcements()` |
 | `client.requests`, `client.collages`, `client.inbox` | see source |
 
 `**params` are passed through to the underlying Gazelle `ajax.php` action

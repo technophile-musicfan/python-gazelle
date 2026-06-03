@@ -21,3 +21,5 @@ Each resource class is exposed as a namespace on the client (e.g.
 ::: pygazelle.resources.bookmarks.BookmarkResource
 
 ::: pygazelle.resources.subscriptions.SubscriptionResource
+
+::: pygazelle.resources.site.SiteResource

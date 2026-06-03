@@ -4,6 +4,7 @@ from .collages import Collage
 from .inbox import Message
 from .notifications import Notification
 from .requests import Request, RequestResult
+from .site import Announcement, Announcements, BlogPost, Top10Category
 from .subscriptions import ForumSubscription
 from .torrents import BrowseTorrent, Torrent, TorrentFile, TorrentGroup, TorrentResult
 from .user import (
@@ -25,6 +26,10 @@ __all__ = [
     "BookmarkedTorrentGroup",
     "BookmarkedArtist",
     "ForumSubscription",
+    "Top10Category",
+    "Announcement",
+    "BlogPost",
+    "Announcements",
     "Collage",
     "Message",
     "Notification",
