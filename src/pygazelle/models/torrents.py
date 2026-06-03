@@ -1,7 +1,7 @@
 import html
 from typing import Any, cast
 
-from pydantic import model_validator
+from pydantic import AliasChoices, Field, model_validator
 
 from .base import GazelleModel
 
@@ -44,11 +44,20 @@ class TorrentGroup(GazelleModel):
     category_id: int | None = None
     category_name: str | None = None
     release_type: int | None = None
+    # Human-readable release type ("Album"/"EP"/...); Orpheus-only (RED omits).
+    release_type_name: str | None = None
     record_label: str | None = None  # RED top-level; Orpheus omits (per-edition only)
     catalogue_number: str | None = None
     vanity_house: bool | None = None
     wiki_image: str | None = None
     wiki_body: str | None = None
+    # BBcode source of the wiki body: Orpheus sends "wikiBBcode", RED sends "bbBody".
+    wiki_bbcode: str | None = Field(
+        default=None, validation_alias=AliasChoices("wikiBBcode", "bbBody")
+    )
+    proxy_image: str | None = None  # proxied cover URL; Orpheus-only
+    is_bookmarked: bool | None = None
+    time: str | None = None
     # Populated by TorrentResource.get_group(); empty when this group is embedded
     # in a single Torrent (action=torrent).
     torrents: list["Torrent"] = []
