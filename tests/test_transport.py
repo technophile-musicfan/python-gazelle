@@ -5,6 +5,7 @@ import pytest
 
 from pygazelle.errors import (
     GazelleAPIError,
+    GazelleAuthError,
     GazelleNotFoundError,
     GazelleRateLimitError,
 )
@@ -253,6 +254,26 @@ async def test_request_write_reauths_once_on_cookie_401():
             "add_tag", data={"groupid": 1}, include_auth_key=False
         )
     assert result == {"ok": True}
+
+
+async def test_request_write_does_not_resend_on_403():
+    # 403 is "forbidden", not an expired session — the write must not be
+    # re-sent (only 401 triggers a single re-auth).
+    mock = MockTransport(
+        [
+            (200, b""),  # initial login
+            (403, b""),  # write forbidden
+        ]
+    )
+    client = httpx.AsyncClient(transport=mock)
+    transport = GazelleTransport(
+        "https://example.com", username="u", password="p", _http_client=client
+    )
+    async with transport:
+        with pytest.raises(GazelleAuthError):
+            await transport.request_write("add_tag", data={"groupid": 1}, include_auth_key=False)
+    # login + single write attempt, no re-auth resend.
+    assert len(mock.requests) == 2
 
 
 async def test_token_bucket_allows_first_request_immediately():

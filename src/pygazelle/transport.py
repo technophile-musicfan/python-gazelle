@@ -165,9 +165,11 @@ class GazelleTransport:
             if auth_key is not None:
                 body["auth"] = auth_key
         response = await self._post_write(action, body, files)
-        if response.status_code in (401, 403) and self._auth_mode == "cookie":
+        if response.status_code == 401 and self._auth_mode == "cookie":
             # Session expired; the write was rejected (not processed). Safe to
-            # re-auth and resend exactly once.
+            # re-auth and resend exactly once. Only 401 (not 403) — a 403 is
+            # "forbidden", not an expired session, so re-sending a write on it
+            # is pointless churn and against the no-retry-on-writes intent.
             await self._login()
             response = await self._post_write(action, body, files)
         if response.status_code == 429:
