@@ -194,9 +194,11 @@ reportUnknownMemberType = false
 reportMissingTypeArgument = false
 
 [tool.codespell]
+# tests/fixtures holds real captured API responses (gitignored, regenerated per
+# dev); real metadata trips codespell, so skip it. Absent in CI anyway.
+skip = "*/fixtures/*"
 # Add here as needed:
 # ignore-words-list = "foo,bar"
-# skip = "foo.py,bar.py"
 
 [tool.pytest.ini_options]
 python_files = ["*.py"]
