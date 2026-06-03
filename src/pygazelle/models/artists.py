@@ -18,3 +18,9 @@ class Artist(GazelleModel):
 class ArtistResult(GazelleModel):
     id: int
     name: str
+
+
+class SimilarArtist(GazelleModel):
+    id: int
+    name: str
+    score: int | None = None  # relatedness weight; absent on some responses

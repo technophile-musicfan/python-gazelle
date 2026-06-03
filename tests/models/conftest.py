@@ -40,6 +40,11 @@ def orpheus_artist():
 
 
 @pytest.fixture
+def orpheus_similar_artists():
+    return load_fixture("orpheus", "similar_artists")
+
+
+@pytest.fixture
 def orpheus_index():
     return load_fixture("orpheus", "index")
 
