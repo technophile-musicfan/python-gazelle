@@ -22,6 +22,18 @@ class StubTransport:
         return b"fake-torrent-data"
 
 
+class CapturingTransport(StubTransport):
+    """StubTransport that records the params of the last request() call."""
+
+    def __init__(self, responses: dict[str, Any]) -> None:
+        super().__init__(responses)
+        self.calls: dict[str, Any] = {}
+
+    async def request(self, action: str, **params) -> Any:
+        self.calls.update(params)
+        return self._responses[action]
+
+
 def _edition_payload(**overrides) -> dict:
     """A minimal valid action=torrentgroup edition (a Torrent without its group)."""
     base = {
@@ -160,31 +172,23 @@ async def test_artist_resource_similar_returns_similar_artists():
     assert similar[0].score == 200
 
 
+async def test_artist_resource_similar_handles_null_response():
+    # An artist with no similar artists can come back as null, not [].
+    resource = ArtistResource(StubTransport({"similar_artists": None}))
+    assert await resource.similar(42) == []
+
+
 async def test_artist_resource_similar_passes_limit():
-    captured: dict[str, object] = {}
-
-    class CapturingTransport(StubTransport):
-        async def request(self, action: str, **params):
-            captured.update(params)
-            return self._responses[action]
-
-    resource = ArtistResource(CapturingTransport({"similar_artists": []}))
-    result = await resource.similar(42, limit=5)
+    transport = CapturingTransport({"similar_artists": []})
+    result = await ArtistResource(transport).similar(42, limit=5)
     assert result == []
-    assert captured == {"id": 42, "limit": 5}
+    assert transport.calls == {"id": 42, "limit": 5}
 
 
 async def test_artist_resource_similar_omits_limit_when_unset():
-    captured: dict[str, object] = {}
-
-    class CapturingTransport(StubTransport):
-        async def request(self, action: str, **params):
-            captured.update(params)
-            return self._responses[action]
-
-    resource = ArtistResource(CapturingTransport({"similar_artists": []}))
-    await resource.similar(42)
-    assert captured == {"id": 42}
+    transport = CapturingTransport({"similar_artists": []})
+    await ArtistResource(transport).similar(42)
+    assert transport.calls == {"id": 42}
 
 
 async def test_user_resource_me_returns_user_model():

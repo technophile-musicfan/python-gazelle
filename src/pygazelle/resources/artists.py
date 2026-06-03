@@ -26,5 +26,7 @@ class ArtistResource(BaseResource):
             params["limit"] = limit
         # similar_artists returns a bare JSON array (not a {results: ...} object);
         # request() is typed to return a dict, so treat the payload as untyped.
-        results: Any = await self._transport.request("similar_artists", **params)
-        return [SimilarArtist.model_validate(a) for a in results]
+        raw: Any = await self._transport.request("similar_artists", **params)
+        # `or []` guards a null response (artist with no similar artists).
+        items: list[Any] = raw or []
+        return [SimilarArtist.model_validate(a) for a in items]
