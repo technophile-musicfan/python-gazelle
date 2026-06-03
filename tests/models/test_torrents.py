@@ -163,6 +163,36 @@ def test_torrent_trumpable_defaults_when_absent():
     assert torrent.trumpable_reasons == []
 
 
+def test_torrentgroup_release_type_name_orpheus(orpheus_torrent):
+    group = TorrentGroup.model_validate(orpheus_torrent["group"])
+    assert group.release_type == 1
+    assert group.release_type_name == "Album"
+    assert group.proxy_image is not None
+    assert group.wiki_bbcode is not None
+    assert group.is_bookmarked is False
+    assert group.time == "2026-05-30 10:44:54"
+
+
+def test_torrentgroup_extras_redacted(redacted_torrent):
+    group = TorrentGroup.model_validate(redacted_torrent["group"])
+    # RED omits releaseTypeName and proxyImage.
+    assert group.release_type_name is None
+    assert group.proxy_image is None
+    # RED carries the BBcode body under "bbBody" (Orpheus uses "wikiBBcode").
+    assert group.wiki_bbcode is not None
+    assert group.is_bookmarked is False
+    assert group.time is not None
+
+
+def test_torrentgroup_extras_default_none_when_absent():
+    group = TorrentGroup.model_validate({"id": 1, "name": "X", "year": 2020})
+    assert group.release_type_name is None
+    assert group.proxy_image is None
+    assert group.wiki_bbcode is None
+    assert group.is_bookmarked is None
+    assert group.time is None
+
+
 def test_torrentgroup_populates_artists_from_music_info():
     # action=torrentgroup (and the embedded group) carry artists under
     # musicInfo.artists with no top-level "artists" key.
