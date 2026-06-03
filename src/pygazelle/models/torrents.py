@@ -99,6 +99,18 @@ class Torrent(GazelleModel):
     file_list: str | None = None  # raw "name{{{size}}}|||..." ("fileList")
     trumpable: bool | None = None
     trumpable_reasons: list[str] = []
+    # Edition/remaster info — what distinguishes one release of a group from another.
+    remaster_year: int | None = None
+    remaster_title: str | None = None
+    remaster_record_label: str | None = None
+    remaster_catalogue_number: str | None = None
+    description: str | None = None
+    # Log detail; logChecksum/logCount are Orpheus-only (RED omits them).
+    log_checksum: bool | None = None
+    log_count: int | None = None
+    rip_log_ids: list[int] = []
+    free_reason: str | None = None  # Orpheus-only freeleech-state reason
+    reported: bool | None = None
 
     @property
     def files(self) -> list[TorrentFile]:
