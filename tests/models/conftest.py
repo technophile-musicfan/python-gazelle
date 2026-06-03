@@ -25,6 +25,16 @@ def redacted_torrent():
 
 
 @pytest.fixture
+def orpheus_torrentgroup():
+    return load_fixture("orpheus", "torrentgroup")
+
+
+@pytest.fixture
+def redacted_torrentgroup():
+    return load_fixture("redacted", "torrentgroup")
+
+
+@pytest.fixture
 def orpheus_artist():
     return load_fixture("orpheus", "artist")
 

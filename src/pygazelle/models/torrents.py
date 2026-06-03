@@ -1,4 +1,7 @@
 import html
+from typing import Any, cast
+
+from pydantic import model_validator
 
 from .base import GazelleModel
 
@@ -36,6 +39,37 @@ class TorrentGroup(GazelleModel):
     year: int
     tags: list[str] = []
     artists: list[TorrentArtist] = []
+    # Richer fields returned by action=torrentgroup (and present on the embedded
+    # group). Optional/tolerant because the two trackers diverge on which they send.
+    category_id: int | None = None
+    category_name: str | None = None
+    release_type: int | None = None
+    record_label: str | None = None  # RED top-level; Orpheus omits (per-edition only)
+    catalogue_number: str | None = None
+    vanity_house: bool | None = None
+    wiki_image: str | None = None
+    wiki_body: str | None = None
+    # Populated by TorrentResource.get_group(); empty when this group is embedded
+    # in a single Torrent (action=torrent).
+    torrents: list["Torrent"] = []
+
+    @model_validator(mode="before")
+    @classmethod
+    def _artists_from_music_info(cls, data: Any) -> Any:
+        # The API nests artists under musicInfo.artists with no top-level "artists"
+        # key; surface them on `artists` unless explicitly provided.
+        if not isinstance(data, dict):
+            return data
+        values = cast("dict[str, Any]", data)
+        # Presence, not truthiness: respect an explicit "artists": [] from the caller.
+        if "artists" in values:
+            return values
+        music_info = values.get("musicInfo")
+        if isinstance(music_info, dict):
+            artists = cast("dict[str, Any]", music_info).get("artists")
+            if artists:
+                return {**values, "artists": artists}
+        return values
 
 
 class Torrent(GazelleModel):
@@ -91,3 +125,7 @@ class TorrentResult(GazelleModel):
     total_leechers: int
     total_snatched: int
     torrents: list[BrowseTorrent] = []
+
+
+# TorrentGroup.torrents forward-references Torrent (defined after it); resolve now.
+TorrentGroup.model_rebuild()

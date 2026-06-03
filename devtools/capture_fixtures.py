@@ -47,6 +47,16 @@ async def capture(
             )
             print(f"[{tracker}] Captured torrent {torrent_id}")
 
+        # Fetch the full group (all editions) for the same release.
+        if torrent:
+            group_id = torrent.get("group", {}).get("id")
+            if group_id:
+                torrentgroup = await t.request("torrentgroup", id=group_id)
+                (out / "torrentgroup.json").write_text(
+                    json.dumps({"status": "success", "response": torrentgroup}, indent=2)
+                )
+                print(f"[{tracker}] Captured torrentgroup {group_id}")
+
         # Derive an artist fixture from the torrent's group musicInfo.
         artist_id = None
         if torrent:

@@ -1,4 +1,10 @@
-from pygazelle.models.torrents import BrowseTorrent, Torrent, TorrentFile, TorrentResult
+from pygazelle.models.torrents import (
+    BrowseTorrent,
+    Torrent,
+    TorrentFile,
+    TorrentGroup,
+    TorrentResult,
+)
 
 
 def test_torrent_model_parses_orpheus_fixture(orpheus_torrent):
@@ -93,6 +99,69 @@ def test_torrent_trumpable_defaults_when_absent():
     )
     assert torrent.trumpable is None
     assert torrent.trumpable_reasons == []
+
+
+def test_torrentgroup_populates_artists_from_music_info():
+    # action=torrentgroup (and the embedded group) carry artists under
+    # musicInfo.artists with no top-level "artists" key.
+    group = TorrentGroup.model_validate(
+        {
+            "id": 7,
+            "name": "Album",
+            "year": 2020,
+            "tags": ["rock"],
+            "musicInfo": {"artists": [{"id": 3, "name": "Radiohead"}]},
+        }
+    )
+    assert [a.name for a in group.artists] == ["Radiohead"]
+    assert group.torrents == []
+
+
+def test_torrentgroup_explicit_artists_take_precedence():
+    group = TorrentGroup.model_validate(
+        {
+            "id": 7,
+            "name": "Album",
+            "year": 2020,
+            "artists": [{"id": 1, "name": "Explicit"}],
+            "musicInfo": {"artists": [{"id": 3, "name": "FromMusicInfo"}]},
+        }
+    )
+    assert [a.name for a in group.artists] == ["Explicit"]
+
+
+def test_torrentgroup_explicit_empty_artists_not_overwritten():
+    # An explicit empty list is a caller decision; musicInfo must not stomp it.
+    group = TorrentGroup.model_validate(
+        {
+            "id": 7,
+            "name": "Album",
+            "year": 2020,
+            "artists": [],
+            "musicInfo": {"artists": [{"id": 3, "name": "FromMusicInfo"}]},
+        }
+    )
+    assert group.artists == []
+
+
+def test_torrentgroup_model_parses_orpheus_fixture(orpheus_torrentgroup):
+    group = TorrentGroup.model_validate(
+        {**orpheus_torrentgroup["group"], "torrents": orpheus_torrentgroup.get("torrents", [])}
+    )
+    assert isinstance(group.id, int)
+    assert group.torrents, "expected editions in torrents[]"
+    assert all(isinstance(t, Torrent) for t in group.torrents)
+    # Orpheus surfaces artists via musicInfo.
+    assert group.artists
+
+
+def test_torrentgroup_model_parses_redacted_fixture(redacted_torrentgroup):
+    group = TorrentGroup.model_validate(
+        {**redacted_torrentgroup["group"], "torrents": redacted_torrentgroup.get("torrents", [])}
+    )
+    assert isinstance(group.id, int)
+    assert group.torrents
+    assert all(isinstance(t, Torrent) for t in group.torrents)
 
 
 def test_browse_result_parses_nested_torrents_orpheus(orpheus_browse):
