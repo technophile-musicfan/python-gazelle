@@ -23,6 +23,16 @@ Response models are [pydantic v2](https://docs.pydantic.dev/) classes. The API i
 
 ::: pygazelle.models.artists.ArtistTag
 
+::: pygazelle.models.artists.ArtistStatistics
+
+::: pygazelle.models.artists.ArtistSimilar
+
+::: pygazelle.models.artists.ArtistTorrentGroup
+
+::: pygazelle.models.artists.DiscographyTorrent
+
+::: pygazelle.models.artists.DiscographyArtist
+
 ## User
 
 ::: pygazelle.models.user.User

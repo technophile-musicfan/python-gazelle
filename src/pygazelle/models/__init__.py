@@ -1,4 +1,14 @@
-from .artists import Artist, ArtistResult, ArtistTag, SimilarArtist
+from .artists import (
+    Artist,
+    ArtistResult,
+    ArtistSimilar,
+    ArtistStatistics,
+    ArtistTag,
+    ArtistTorrentGroup,
+    DiscographyArtist,
+    DiscographyTorrent,
+    SimilarArtist,
+)
 from .bookmarks import BookmarkedArtist, BookmarkedTorrent, BookmarkedTorrentGroup
 from .collages import Collage
 from .inbox import Message
@@ -21,6 +31,11 @@ __all__ = [
     "Artist",
     "ArtistResult",
     "ArtistTag",
+    "ArtistStatistics",
+    "ArtistSimilar",
+    "ArtistTorrentGroup",
+    "DiscographyArtist",
+    "DiscographyTorrent",
     "SimilarArtist",
     "BookmarkedTorrent",
     "BookmarkedTorrentGroup",
