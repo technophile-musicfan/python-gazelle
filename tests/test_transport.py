@@ -3,7 +3,11 @@ import time
 import httpx
 import pytest
 
-from pygazelle.errors import GazelleAPIError, GazelleNotFoundError, GazelleRateLimitError
+from pygazelle.errors import (
+    GazelleAPIError,
+    GazelleNotFoundError,
+    GazelleRateLimitError,
+)
 from pygazelle.transport import GazelleTransport, TokenBucket
 
 
@@ -144,6 +148,111 @@ async def test_cookie_auth_reauths_on_401():
     async with transport:
         result = await transport.request("index")
     assert result == {"id": 99}
+
+
+async def test_request_write_posts_action_and_injects_auth_key():
+    transport, mock = make_transport(
+        [
+            (200, {"status": "success", "response": {"authkey": "AK123"}}),  # index
+            (200, {"status": "success", "response": {"ok": True}}),  # write POST
+        ]
+    )
+    async with transport:
+        result = await transport.request_write("add_tag", data={"groupid": 1, "tagname": "rock"})
+    assert result == {"ok": True}
+    # First call fetches the authkey via GET index, then POSTs the write.
+    assert mock.requests[0].method == "GET"
+    assert b"action=index" in mock.requests[0].url.query
+    write = mock.requests[1]
+    assert write.method == "POST"
+    assert b"action=add_tag" in write.url.query
+    assert b"groupid=1" in write.content
+    assert b"tagname=rock" in write.content
+    assert b"auth=AK123" in write.content
+
+
+async def test_request_write_caches_auth_key_across_calls():
+    transport, mock = make_transport(
+        [
+            (200, {"status": "success", "response": {"authkey": "AK123"}}),  # index (once)
+            (200, {"status": "success", "response": {"ok": 1}}),  # write 1
+            (200, {"status": "success", "response": {"ok": 2}}),  # write 2
+        ]
+    )
+    async with transport:
+        await transport.request_write("add_tag", data={"groupid": 1})
+        await transport.request_write("add_tag", data={"groupid": 2})
+    # index fetched exactly once; the two writes reuse the cached authkey.
+    assert [r.method for r in mock.requests] == ["GET", "POST", "POST"]
+    assert sum(b"action=index" in r.url.query for r in mock.requests) == 1
+
+
+async def test_request_write_does_not_retry_on_500():
+    transport, mock = make_transport([(500, b"")], max_retries=3)
+    async with transport:
+        with pytest.raises(GazelleAPIError):
+            await transport.request_write("add_tag", data={"groupid": 1}, include_auth_key=False)
+    # Non-idempotent: exactly one attempt, no retry despite max_retries=3.
+    assert mock._index == 1
+
+
+async def test_request_write_does_not_retry_on_429():
+    transport, mock = make_transport([(429, b"")], max_retries=3)
+    async with transport:
+        with pytest.raises(GazelleRateLimitError):
+            await transport.request_write("add_tag", data={"groupid": 1}, include_auth_key=False)
+    assert mock._index == 1
+
+
+async def test_request_write_surfaces_failure_message():
+    transport, _ = make_transport(
+        [(200, {"status": "failure", "error": "you cannot add that tag"})]
+    )
+    async with transport:
+        with pytest.raises(GazelleAPIError):
+            await transport.request_write("add_tag", data={"groupid": 1}, include_auth_key=False)
+
+
+async def test_request_write_does_not_overwrite_explicit_auth():
+    transport, mock = make_transport([(200, {"status": "success", "response": {"ok": True}})])
+    async with transport:
+        await transport.request_write("add_tag", data={"groupid": 1, "auth": "MINE"})
+    # Caller supplied auth → no index fetch, only the single POST.
+    assert len(mock.requests) == 1
+    assert mock.requests[0].method == "POST"
+    assert b"auth=MINE" in mock.requests[0].content
+
+
+async def test_request_write_supports_multipart_files():
+    transport, mock = make_transport([(200, {"status": "success", "response": {"ok": True}})])
+    async with transport:
+        await transport.request_write(
+            "upload",
+            data={"groupid": 1},
+            files={"file_input": ("a.torrent", b"d8:announce")},
+            include_auth_key=False,
+        )
+    assert mock.requests[0].headers["content-type"].startswith("multipart/form-data")
+
+
+async def test_request_write_reauths_once_on_cookie_401():
+    mock = MockTransport(
+        [
+            (200, b""),  # initial login
+            (401, b""),  # write rejected — session expired (never processed)
+            (200, b""),  # re-login
+            (200, {"status": "success", "response": {"ok": True}}),  # write retried
+        ]
+    )
+    client = httpx.AsyncClient(transport=mock)
+    transport = GazelleTransport(
+        "https://example.com", username="u", password="p", _http_client=client
+    )
+    async with transport:
+        result = await transport.request_write(
+            "add_tag", data={"groupid": 1}, include_auth_key=False
+        )
+    assert result == {"ok": True}
 
 
 async def test_token_bucket_allows_first_request_immediately():

@@ -77,6 +77,7 @@ class GazelleTransport:
         if self._auth_mode is None:
             raise ValueError("Either api_key or username+password must be provided")
         self._logged_in = False
+        self._auth_key: str | None = None
         self._rate_limiter = TokenBucket(rate)
         # RED rejects requests without a custom User-Agent (the library default
         # gets a 401); a UA is harmless/expected on the other trackers too.
@@ -128,6 +129,58 @@ class GazelleTransport:
             return self._parse(response)
         assert last_exc is not None
         raise last_exc
+
+    async def _ensure_auth_key(self) -> str | None:
+        """Fetch and cache the ``authkey`` Gazelle write actions require.
+
+        It is returned in the ``index`` response; cached so repeated writes do
+        not re-fetch it.
+        """
+        if self._auth_key is None:
+            data = await self.request("index")
+            self._auth_key = data.get("authkey")
+        return self._auth_key
+
+    async def request_write(
+        self,
+        action: str,
+        *,
+        data: dict[str, Any] | None = None,
+        files: Any | None = None,
+        include_auth_key: bool = True,
+    ) -> dict[str, Any]:
+        """POST a mutating ``action`` to ``ajax.php``.
+
+        Unlike :meth:`request` (GET), this performs **no retry on 429/5xx**:
+        a write that already took effect server-side but returned a transient
+        error must not be re-sent (it would double-apply). The only retry is a
+        single re-auth on a cookie-mode 401, which means the request was
+        rejected before processing (provably never landed).
+        """
+        if self._auth_mode == "cookie" and not self._logged_in:
+            await self._login()
+        body: dict[str, Any] = dict(data or {})
+        if include_auth_key and "auth" not in body:
+            auth_key = await self._ensure_auth_key()
+            if auth_key is not None:
+                body["auth"] = auth_key
+        response = await self._post_write(action, body, files)
+        if response.status_code in (401, 403) and self._auth_mode == "cookie":
+            # Session expired; the write was rejected (not processed). Safe to
+            # re-auth and resend exactly once.
+            await self._login()
+            response = await self._post_write(action, body, files)
+        if response.status_code == 429:
+            raise GazelleRateLimitError("Rate limit exceeded")
+        return self._parse(response)
+
+    async def _post_write(
+        self, action: str, body: dict[str, Any], files: Any | None
+    ) -> httpx.Response:
+        await self._rate_limiter.acquire()
+        return await self._client.post(
+            self._ajax_url, params={"action": action}, data=body, files=files
+        )
 
     async def download(self, torrent_id: int) -> bytes:
         last_exc: Exception | None = None
