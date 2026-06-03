@@ -11,7 +11,7 @@ def test_bookmarked_torrent_group_parses_nested_torrents():
             "name": "Album",
             "year": 2020,
             "tagList": "rock electronic",
-            "releaseType": "Album",
+            "releaseType": 1,
             "torrents": [{"id": 100, "groupId": 1, "format": "FLAC"}],
         }
     )

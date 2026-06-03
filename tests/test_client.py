@@ -316,7 +316,7 @@ async def test_bookmark_resource_torrents_returns_groups():
                         "name": "Album",
                         "year": 2020,
                         "tagList": "rock",
-                        "releaseType": "Album",
+                        "releaseType": 1,
                         "torrents": [
                             {
                                 "id": 100,

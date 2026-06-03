@@ -13,6 +13,8 @@ class BookmarkedTorrent(GazelleModel):
     seeders: int | None = None
     leechers: int | None = None
     snatched: int | None = None
+    file_count: int | None = None
+    has_file: int | None = None  # API returns a number, not a bool
     has_log: bool | None = None
     has_cue: bool | None = None
     log_score: int | None = None
@@ -33,7 +35,7 @@ class BookmarkedTorrentGroup(GazelleModel):
     record_label: str | None = None
     catalogue_number: str | None = None
     tag_list: str | None = None  # space-separated tags, as the API returns them
-    release_type: str | None = None
+    release_type: int | None = None  # numeric enum, matching TorrentGroup.release_type
     vanity_house: bool | None = None
     image: str | None = None
     torrents: list[BookmarkedTorrent] = []

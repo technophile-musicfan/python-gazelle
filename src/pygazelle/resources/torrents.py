@@ -24,7 +24,7 @@ class TorrentResource(BaseResource):
 
     async def search(self, query: str, **params: str | int) -> list[TorrentResult]:
         data = await self._transport.request("browse", searchstr=query, **params)
-        return [TorrentResult.model_validate(r) for r in data.get("results", [])]
+        return self._parse_list(data.get("results"), TorrentResult)
 
     async def download(self, torrent_id: int) -> bytes:
         return await self._transport.download(torrent_id)

@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from typing import Any
-
 from ..models.artists import Artist, ArtistResult, SimilarArtist
 from .base import BaseResource
 
@@ -23,8 +21,6 @@ class ArtistResource(BaseResource):
     async def similar(self, artist_id: int, limit: int | None = None) -> list[SimilarArtist]:
         params = self._params(id=artist_id, limit=limit)
         # similar_artists returns a bare JSON array (not a {results: ...} object);
-        # request() is typed to return a dict, so treat the payload as untyped.
-        raw: Any = await self._transport.request("similar_artists", **params)
-        # `or []` guards a null response (artist with no similar artists).
-        items: list[Any] = raw or []
-        return [SimilarArtist.model_validate(a) for a in items]
+        # _parse_list tolerates that and a null response (no similar artists).
+        data = await self._transport.request("similar_artists", **params)
+        return self._parse_list(data, SimilarArtist)
