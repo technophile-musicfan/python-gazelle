@@ -22,6 +22,7 @@ from pygazelle.models import (
 from pygazelle.resources.artists import ArtistResource
 from pygazelle.resources.bookmarks import BookmarkResource
 from pygazelle.resources.notifications import NotificationResource
+from pygazelle.resources.requests import RequestResource
 from pygazelle.resources.site import SiteResource
 from pygazelle.resources.subscriptions import SubscriptionResource
 from pygazelle.resources.torrents import TorrentResource
@@ -36,19 +37,43 @@ class StubTransport:
     async def request(self, action: str, **params) -> Any:
         return self._responses[action]
 
+    async def request_write(
+        self,
+        action: str,
+        *,
+        data: dict[str, Any] | None = None,
+        files: Any | None = None,
+        params: dict[str, Any] | None = None,
+        include_auth_key: bool = True,
+    ) -> Any:
+        return self._responses[action]
+
     async def download(self, torrent_id: int) -> bytes:
         return b"fake-torrent-data"
 
 
 class CapturingTransport(StubTransport):
-    """StubTransport that records the params of the last request() call."""
+    """StubTransport that records request()/request_write() call arguments."""
 
     def __init__(self, responses: dict[str, Any]) -> None:
         super().__init__(responses)
         self.calls: dict[str, Any] = {}
+        self.write_calls: list[dict[str, Any]] = []
 
     async def request(self, action: str, **params) -> Any:
         self.calls.update(params)
+        return self._responses[action]
+
+    async def request_write(
+        self,
+        action: str,
+        *,
+        data: dict[str, Any] | None = None,
+        files: Any | None = None,
+        params: dict[str, Any] | None = None,
+        include_auth_key: bool = True,
+    ) -> Any:
+        self.write_calls.append({"action": action, "data": data, "files": files, "params": params})
         return self._responses[action]
 
 
@@ -455,6 +480,77 @@ async def test_site_resource_announcements_empty_defaults():
     result = await SiteResource(stub).announcements()
     assert result.announcements == []
     assert result.blog_posts == []
+
+
+async def test_torrent_add_tag_joins_list_and_returns_result():
+    transport = CapturingTransport({"add_tag": {"added": ["rock", "metal"], "rejected": []}})
+    result = await TorrentResource(transport).add_tag(5, ["rock", "metal"])
+    call = transport.write_calls[0]
+    assert call["action"] == "add_tag"
+    assert call["data"] == {"groupid": 5, "tagname": "rock,metal"}
+    assert result.added == ["rock", "metal"]
+
+
+async def test_torrent_add_tag_accepts_string():
+    transport = CapturingTransport({"add_tag": {"added": [], "rejected": ["dupe"]}})
+    result = await TorrentResource(transport).add_tag(5, "jazz")
+    assert transport.write_calls[0]["data"]["tagname"] == "jazz"
+    assert result.rejected == ["dupe"]
+
+
+async def test_torrent_add_log_sends_id_param_and_logfiles():
+    transport = CapturingTransport(
+        {
+            "add_log": {
+                "torrentId": 9,
+                "score": 100,
+                "checksum": "ok",
+                "logcheckerVersion": "1.0",
+                "logSummaries": [{"score": 100, "ripper": "EAC"}],
+            }
+        }
+    )
+    result = await TorrentResource(transport).add_log(9, b"LOGDATA")
+    call = transport.write_calls[0]
+    assert call["action"] == "add_log"
+    assert call["params"] == {"id": 9}
+    # multipart field name is the array key "logfiles[]".
+    assert call["files"][0][0] == "logfiles[]"
+    assert result.torrent_id == 9
+    assert result.log_summaries[0].ripper == "EAC"
+
+
+async def test_torrent_add_log_accepts_multiple_logs():
+    transport = CapturingTransport({"add_log": {"torrentId": 9}})
+    await TorrentResource(transport).add_log(9, [b"L1", b"L2"])
+    files = transport.write_calls[0]["files"]
+    assert len(files) == 2
+    assert all(f[0] == "logfiles[]" for f in files)
+
+
+async def test_request_fill_posts_requestid_and_torrentid():
+    transport = CapturingTransport(
+        {"request_fill": {"requestId": 3, "torrentId": 7, "fillerName": "me", "bounty": 100}}
+    )
+    result = await RequestResource(transport).fill(3, torrent_id=7)
+    assert transport.write_calls[0]["data"] == {"requestid": 3, "torrentid": 7}
+    assert result.filler_name == "me"
+    assert result.bounty == 100
+
+
+async def test_request_fill_accepts_link():
+    transport = CapturingTransport({"request_fill": {"requestId": 3}})
+    await RequestResource(transport).fill(3, link="https://x/torrents.php?id=7")
+    assert transport.write_calls[0]["data"] == {
+        "requestid": 3,
+        "link": "https://x/torrents.php?id=7",
+    }
+
+
+async def test_request_fill_requires_torrent_or_link():
+    transport = CapturingTransport({})
+    with pytest.raises(ValueError):
+        await RequestResource(transport).fill(3)
 
 
 async def test_user_resource_me_returns_user_model():

@@ -91,14 +91,15 @@ Each client exposes resource namespaces:
 
 | Namespace | Methods |
 |---|---|
-| `client.torrents` | `get(id)`, `get_group(id)`, `search(query, **params)`, `download(id)` |
+| `client.torrents` | `get(id)`, `get_group(id)`, `search(query, **params)`, `download(id)`, `add_tag(group_id, tags)`, `add_log(torrent_id, logfiles)` |
 | `client.artists` | `get(id)`, `search(name)`, `similar(id, limit=None)` |
 | `client.user` | `me()`, `get(id)`, `search(query, **params)`, `torrents(id, type, ...)` |
 | `client.notifications` | `list(**params)` |
 | `client.bookmarks` | `torrents()`, `artists()` |
 | `client.subscriptions` | `list()` |
 | `client.site` | `top10(type, limit)`, `announcements()` |
-| `client.requests`, `client.collages`, `client.inbox` | see source |
+| `client.requests` | `get(id)`, `search(query, **params)`, `fill(request_id, torrent_id=…)` |
+| `client.collages`, `client.inbox` | see source |
 
 `**params` are passed through to the underlying Gazelle `ajax.php` action
 (e.g. `format="FLAC"`, `page=1`).

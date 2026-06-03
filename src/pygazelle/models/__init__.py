@@ -26,6 +26,7 @@ from .user import (
     UserStats,
     UserTorrent,
 )
+from .writes import LogAddition, LogSummary, RequestFill, TagAddition
 
 __all__ = [
     "Artist",
@@ -55,6 +56,10 @@ __all__ = [
     "TorrentFile",
     "TorrentGroup",
     "TorrentResult",
+    "TagAddition",
+    "LogSummary",
+    "LogAddition",
+    "RequestFill",
     "User",
     "UserStats",
     "UserProfile",
