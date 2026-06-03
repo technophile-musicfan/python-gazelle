@@ -18,6 +18,16 @@ class SupportsTransport(Protocol):
 
     async def request(self, action: str, **params: str | int) -> dict[str, Any]: ...
 
+    async def request_write(
+        self,
+        action: str,
+        *,
+        data: dict[str, Any] | None = None,
+        files: Any | None = None,
+        params: dict[str, str | int] | None = None,
+        include_auth_key: bool = True,
+    ) -> dict[str, Any]: ...
+
     async def download(self, torrent_id: int) -> bytes: ...
 
 
@@ -147,9 +157,14 @@ class GazelleTransport:
         *,
         data: dict[str, Any] | None = None,
         files: Any | None = None,
+        params: dict[str, str | int] | None = None,
         include_auth_key: bool = True,
     ) -> dict[str, Any]:
         """POST a mutating ``action`` to ``ajax.php``.
+
+        ``data`` is the form/multipart body, ``files`` the multipart file parts
+        (e.g. an uploaded log), and ``params`` any extra query-string params some
+        actions read from the query (e.g. add_log's ``id``).
 
         Unlike :meth:`request` (GET), this performs **no retry on 429/5xx**:
         a write that already took effect server-side but returned a transient
@@ -164,24 +179,31 @@ class GazelleTransport:
             auth_key = await self._ensure_auth_key()
             if auth_key is not None:
                 body["auth"] = auth_key
-        response = await self._post_write(action, body, files)
+        response = await self._post_write(action, body, files, params)
         if response.status_code == 401 and self._auth_mode == "cookie":
             # Session expired; the write was rejected (not processed). Safe to
             # re-auth and resend exactly once. Only 401 (not 403) — a 403 is
             # "forbidden", not an expired session, so re-sending a write on it
             # is pointless churn and against the no-retry-on-writes intent.
             await self._login()
-            response = await self._post_write(action, body, files)
+            response = await self._post_write(action, body, files, params)
         if response.status_code == 429:
             raise GazelleRateLimitError("Rate limit exceeded")
         return self._parse(response)
 
     async def _post_write(
-        self, action: str, body: dict[str, Any], files: Any | None
+        self,
+        action: str,
+        body: dict[str, Any],
+        files: Any | None,
+        params: dict[str, str | int] | None = None,
     ) -> httpx.Response:
         await self._rate_limiter.acquire()
         return await self._client.post(
-            self._ajax_url, params={"action": action}, data=body, files=files
+            self._ajax_url,
+            params={"action": action, **(params or {})},
+            data=body,
+            files=files,
         )
 
     async def download(self, torrent_id: int) -> bytes:

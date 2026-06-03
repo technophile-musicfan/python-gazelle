@@ -256,6 +256,21 @@ async def test_request_write_reauths_once_on_cookie_401():
     assert result == {"ok": True}
 
 
+async def test_request_write_sends_extra_query_params():
+    transport, mock = make_transport([(200, {"status": "success", "response": {"torrentId": 9}})])
+    async with transport:
+        await transport.request_write(
+            "add_log",
+            params={"id": 9},
+            files={"logfiles[]": ("rip.log", b"log-bytes")},
+            include_auth_key=False,
+        )
+    query = mock.requests[0].url.query
+    assert b"action=add_log" in query
+    assert b"id=9" in query
+    assert mock.requests[0].headers["content-type"].startswith("multipart/form-data")
+
+
 async def test_request_write_does_not_resend_on_403():
     # 403 is "forbidden", not an expired session — the write must not be
     # re-sent (only 401 triggers a single re-auth).

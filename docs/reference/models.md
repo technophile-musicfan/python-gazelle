@@ -72,3 +72,13 @@ Response models are [pydantic v2](https://docs.pydantic.dev/) classes. The API i
 ::: pygazelle.models.site.Announcement
 
 ::: pygazelle.models.site.BlogPost
+
+## Writes
+
+::: pygazelle.models.writes.TagAddition
+
+::: pygazelle.models.writes.LogAddition
+
+::: pygazelle.models.writes.LogSummary
+
+::: pygazelle.models.writes.RequestFill
