@@ -1,10 +1,5 @@
-# Capability: gazelle-client
+## MODIFIED Requirements
 
-## Purpose
-
-The async Gazelle API client exposes tracker API endpoints via typed resource namespaces. It is the primary interface library users interact with, providing an async-native surface backed by named resources for torrents, artists, requests, collages, users, inbox, notifications, bookmarks, subscriptions, and site-wide reads — including mutating actions (add-tag, add-log, request-fill). Tracker-specific subclasses (`OrpheusClient`, `RedactedClient`) configure the correct base URL automatically.
-
-## Requirements
 ### Requirement: Resource-based API surface
 The client SHALL expose Gazelle API endpoints via named resource namespaces accessible as properties on the client instance.
 
@@ -15,24 +10,6 @@ The client SHALL expose Gazelle API endpoints via named resource namespaces acce
 #### Scenario: Resource method returns typed model
 - **WHEN** a resource method is awaited
 - **THEN** the result is a Pydantic model instance (or a list of them), not a raw dict
-
-### Requirement: Async-native interface
-All resource methods SHALL be coroutines requiring `await`.
-
-#### Scenario: Resource method is a coroutine
-- **WHEN** a resource method is called without `await`
-- **THEN** a coroutine object is returned, not the result
-
-### Requirement: Tracker subclasses
-The library SHALL provide `OrpheusClient` and `RedactedClient` subclasses that configure the correct base URL and apply any per-tracker overrides.
-
-#### Scenario: OrpheusClient uses Orpheus base URL
-- **WHEN** `OrpheusClient` is instantiated
-- **THEN** all requests are sent to the Orpheus API base URL
-
-#### Scenario: RedactedClient uses Redacted base URL
-- **WHEN** `RedactedClient` is instantiated
-- **THEN** all requests are sent to the Redacted API base URL
 
 ### Requirement: Torrent resource methods
 The `TorrentResource` SHALL support fetching a single torrent by ID, fetching a torrent group with its editions, searching torrents, downloading a torrent file, and the mutating actions add-tag and add-log.
@@ -99,6 +76,8 @@ The client SHALL expose resources for the authenticated user's profile, public u
 - **WHEN** `client.notifications.list()` is awaited
 - **THEN** a list of `Notification` models is returned
 
+## ADDED Requirements
+
 ### Requirement: Request resource methods
 The `RequestResource` SHALL support fetching a request by ID, searching requests, and filling a request (a mutating action).
 
@@ -139,4 +118,3 @@ The client SHALL expose site-wide read endpoints via `client.site`.
 #### Scenario: Fetch announcements
 - **WHEN** `client.site.announcements()` is awaited
 - **THEN** an `Announcements` model (site news plus blog posts) is returned
-
