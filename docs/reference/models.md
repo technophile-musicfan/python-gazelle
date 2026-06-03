@@ -40,3 +40,15 @@ Response models are [pydantic v2](https://docs.pydantic.dev/) classes. The API i
 ::: pygazelle.models.collages.Collage
 
 ::: pygazelle.models.inbox.Message
+
+## Bookmarks
+
+::: pygazelle.models.bookmarks.BookmarkedTorrentGroup
+
+::: pygazelle.models.bookmarks.BookmarkedTorrent
+
+::: pygazelle.models.bookmarks.BookmarkedArtist
+
+## Subscriptions
+
+::: pygazelle.models.subscriptions.ForumSubscription

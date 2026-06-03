@@ -17,3 +17,7 @@ Each resource class is exposed as a namespace on the client (e.g.
 ::: pygazelle.resources.collages.CollageResource
 
 ::: pygazelle.resources.inbox.InboxResource
+
+::: pygazelle.resources.bookmarks.BookmarkResource
+
+::: pygazelle.resources.subscriptions.SubscriptionResource

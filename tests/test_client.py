@@ -5,6 +5,9 @@ import pytest
 from pygazelle.errors import GazelleAPIError
 from pygazelle.models import (
     Artist,
+    BookmarkedArtist,
+    BookmarkedTorrentGroup,
+    ForumSubscription,
     Notification,
     SimilarArtist,
     Torrent,
@@ -15,7 +18,9 @@ from pygazelle.models import (
     UserTorrent,
 )
 from pygazelle.resources.artists import ArtistResource
+from pygazelle.resources.bookmarks import BookmarkResource
 from pygazelle.resources.notifications import NotificationResource
+from pygazelle.resources.subscriptions import SubscriptionResource
 from pygazelle.resources.torrents import TorrentResource
 from pygazelle.resources.user import UserResource
 
@@ -301,6 +306,95 @@ async def test_user_resource_torrents_passes_params():
     assert transport.calls == {"id": 42, "type": "uploaded", "limit": 10, "offset": 20}
 
 
+async def test_bookmark_resource_torrents_returns_groups():
+    stub = StubTransport(
+        {
+            "bookmarks": {
+                "bookmarks": [
+                    {
+                        "id": 1,
+                        "name": "Album",
+                        "year": 2020,
+                        "tagList": "rock",
+                        "releaseType": "Album",
+                        "torrents": [
+                            {
+                                "id": 100,
+                                "groupId": 1,
+                                "media": "CD",
+                                "format": "FLAC",
+                                "encoding": "Lossless",
+                                "size": 500,
+                                "seeders": 10,
+                            }
+                        ],
+                    }
+                ]
+            }
+        }
+    )
+    groups = await BookmarkResource(stub).torrents()
+    assert len(groups) == 1
+    assert isinstance(groups[0], BookmarkedTorrentGroup)
+    assert groups[0].id == 1
+    assert groups[0].tag_list == "rock"
+    assert groups[0].torrents[0].id == 100
+    assert groups[0].torrents[0].group_id == 1
+
+
+async def test_bookmark_resource_torrents_passes_type():
+    transport = CapturingTransport({"bookmarks": {"bookmarks": []}})
+    await BookmarkResource(transport).torrents()
+    assert transport.calls == {"type": "torrents"}
+
+
+async def test_bookmark_resource_artists_returns_artists():
+    stub = StubTransport({"bookmarks": {"artists": [{"artistId": 5, "artistName": "X"}]}})
+    artists = await BookmarkResource(stub).artists()
+    assert len(artists) == 1
+    assert isinstance(artists[0], BookmarkedArtist)
+    assert artists[0].artist_id == 5
+    assert artists[0].artist_name == "X"
+
+
+async def test_bookmark_resource_artists_passes_type():
+    transport = CapturingTransport({"bookmarks": {"artists": []}})
+    await BookmarkResource(transport).artists()
+    assert transport.calls == {"type": "artists"}
+
+
+async def test_subscription_resource_list_returns_threads():
+    stub = StubTransport(
+        {
+            "subscriptions": {
+                "threads": [
+                    {
+                        "forumId": 1,
+                        "forumName": "General",
+                        "threadId": 10,
+                        "threadTitle": "Hi",
+                        "postId": 100,
+                        "lastPostId": 200,
+                        "locked": False,
+                        "new": True,
+                    }
+                ]
+            }
+        }
+    )
+    subs = await SubscriptionResource(stub).list()
+    assert len(subs) == 1
+    assert isinstance(subs[0], ForumSubscription)
+    assert subs[0].thread_id == 10
+    assert subs[0].forum_name == "General"
+    assert subs[0].new is True
+
+
+async def test_subscription_resource_list_empty_when_absent():
+    stub = StubTransport({"subscriptions": {}})
+    assert await SubscriptionResource(stub).list() == []
+
+
 async def test_user_resource_me_returns_user_model():
     stub = StubTransport(
         {
@@ -391,6 +485,8 @@ def test_client_exposes_resource_namespaces():
     assert hasattr(client, "collages")
     assert hasattr(client, "user")
     assert hasattr(client, "inbox")
+    assert isinstance(client.bookmarks, BookmarkResource)
+    assert isinstance(client.subscriptions, SubscriptionResource)
 
 
 def test_orpheus_client_uses_orpheus_url():
