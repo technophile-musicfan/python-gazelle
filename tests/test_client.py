@@ -19,6 +19,31 @@ class StubTransport:
         return b"fake-torrent-data"
 
 
+def _edition_payload(**overrides) -> dict:
+    """A minimal valid action=torrentgroup edition (a Torrent without its group)."""
+    base = {
+        "id": 100,
+        "media": "CD",
+        "format": "FLAC",
+        "encoding": "Lossless",
+        "scene": False,
+        "hasLog": True,
+        "hasCue": True,
+        "logScore": 100,
+        "fileCount": 12,
+        "size": 500000000,
+        "seeders": 10,
+        "leechers": 1,
+        "snatched": 50,
+        "freeTorrent": False,
+        "time": "2020-01-01 00:00:00",
+        "filePath": "Artist - Album",
+        "userId": 1,
+        "username": "uploader",
+    }
+    return {**base, **overrides}
+
+
 async def test_torrent_resource_get_returns_torrent_model():
     stub = StubTransport(
         {
@@ -71,46 +96,8 @@ async def test_torrent_resource_get_group_returns_group_with_torrents():
                     "musicInfo": {"artists": [{"id": 3, "name": "Radiohead"}]},
                 },
                 "torrents": [
-                    {
-                        "id": 100,
-                        "media": "CD",
-                        "format": "FLAC",
-                        "encoding": "Lossless",
-                        "scene": False,
-                        "hasLog": True,
-                        "hasCue": True,
-                        "logScore": 100,
-                        "fileCount": 12,
-                        "size": 500000000,
-                        "seeders": 10,
-                        "leechers": 1,
-                        "snatched": 50,
-                        "freeTorrent": False,
-                        "time": "2020-01-01 00:00:00",
-                        "filePath": "Artist - Album",
-                        "userId": 1,
-                        "username": "uploader",
-                    },
-                    {
-                        "id": 101,
-                        "media": "WEB",
-                        "format": "MP3",
-                        "encoding": "320",
-                        "scene": False,
-                        "hasLog": False,
-                        "hasCue": False,
-                        "logScore": 0,
-                        "fileCount": 11,
-                        "size": 90000000,
-                        "seeders": 5,
-                        "leechers": 0,
-                        "snatched": 20,
-                        "freeTorrent": False,
-                        "time": "2020-01-02 00:00:00",
-                        "filePath": "Artist - Album [WEB]",
-                        "userId": 2,
-                        "username": "uploader2",
-                    },
+                    _edition_payload(id=100, media="CD", format="FLAC", encoding="Lossless"),
+                    _edition_payload(id=101, media="WEB", format="MP3", encoding="320"),
                 ],
             }
         }

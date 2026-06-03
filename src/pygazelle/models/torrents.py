@@ -61,7 +61,8 @@ class TorrentGroup(GazelleModel):
         if not isinstance(data, dict):
             return data
         values = cast("dict[str, Any]", data)
-        if values.get("artists"):
+        # Presence, not truthiness: respect an explicit "artists": [] from the caller.
+        if "artists" in values:
             return values
         music_info = values.get("musicInfo")
         if isinstance(music_info, dict):

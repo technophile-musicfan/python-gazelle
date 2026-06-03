@@ -130,6 +130,20 @@ def test_torrentgroup_explicit_artists_take_precedence():
     assert [a.name for a in group.artists] == ["Explicit"]
 
 
+def test_torrentgroup_explicit_empty_artists_not_overwritten():
+    # An explicit empty list is a caller decision; musicInfo must not stomp it.
+    group = TorrentGroup.model_validate(
+        {
+            "id": 7,
+            "name": "Album",
+            "year": 2020,
+            "artists": [],
+            "musicInfo": {"artists": [{"id": 3, "name": "FromMusicInfo"}]},
+        }
+    )
+    assert group.artists == []
+
+
 def test_torrentgroup_model_parses_orpheus_fixture(orpheus_torrentgroup):
     group = TorrentGroup.model_validate(
         {**orpheus_torrentgroup["group"], "torrents": orpheus_torrentgroup.get("torrents", [])}

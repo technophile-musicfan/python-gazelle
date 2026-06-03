@@ -18,7 +18,9 @@ class TorrentResource(BaseResource):
         group_data = data.get("group")
         if group_data is None:
             raise GazelleAPIError(status_code=200, message="missing 'group' key in response")
-        return TorrentGroup.model_validate({**group_data, "torrents": data.get("torrents", [])})
+        # Use `or []` not a .get default: the API may send "torrents": null, and
+        # passing None would raise an opaque pydantic error instead.
+        return TorrentGroup.model_validate({**group_data, "torrents": data.get("torrents") or []})
 
     async def search(self, query: str, **params: str | int) -> list[TorrentResult]:
         data = await self._transport.request("browse", searchstr=query, **params)
