@@ -1,7 +1,9 @@
+from typing import Any
+
 import pytest
 
 from pygazelle.errors import GazelleAPIError
-from pygazelle.models import Artist, Notification, Torrent, TorrentGroup, User
+from pygazelle.models import Artist, Notification, SimilarArtist, Torrent, TorrentGroup, User
 from pygazelle.resources.artists import ArtistResource
 from pygazelle.resources.notifications import NotificationResource
 from pygazelle.resources.torrents import TorrentResource
@@ -9,10 +11,11 @@ from pygazelle.resources.user import UserResource
 
 
 class StubTransport:
-    def __init__(self, responses: dict[str, dict]) -> None:
+    # Values are usually dicts, but some actions (e.g. similar_artists) return a list.
+    def __init__(self, responses: dict[str, Any]) -> None:
         self._responses = responses
 
-    async def request(self, action: str, **params) -> dict:
+    async def request(self, action: str, **params) -> Any:
         return self._responses[action]
 
     async def download(self, torrent_id: int) -> bytes:
@@ -137,6 +140,51 @@ async def test_artist_resource_get_returns_artist_model():
     artist = await resource.get(1)
     assert isinstance(artist, Artist)
     assert artist.name == "Radiohead"
+
+
+async def test_artist_resource_similar_returns_similar_artists():
+    # similar_artists returns a bare JSON array as its response value.
+    stub = StubTransport(
+        {
+            "similar_artists": [
+                {"id": 8307, "name": "Fairmont", "score": 200},
+                {"id": 3693, "name": "Paul Kalkbrenner", "score": 150},
+            ]
+        }
+    )
+    resource = ArtistResource(stub)
+    similar = await resource.similar(42)
+    assert [a.id for a in similar] == [8307, 3693]
+    assert all(isinstance(a, SimilarArtist) for a in similar)
+    assert similar[0].name == "Fairmont"
+    assert similar[0].score == 200
+
+
+async def test_artist_resource_similar_passes_limit():
+    captured: dict[str, object] = {}
+
+    class CapturingTransport(StubTransport):
+        async def request(self, action: str, **params):
+            captured.update(params)
+            return self._responses[action]
+
+    resource = ArtistResource(CapturingTransport({"similar_artists": []}))
+    result = await resource.similar(42, limit=5)
+    assert result == []
+    assert captured == {"id": 42, "limit": 5}
+
+
+async def test_artist_resource_similar_omits_limit_when_unset():
+    captured: dict[str, object] = {}
+
+    class CapturingTransport(StubTransport):
+        async def request(self, action: str, **params):
+            captured.update(params)
+            return self._responses[action]
+
+    resource = ArtistResource(CapturingTransport({"similar_artists": []}))
+    await resource.similar(42)
+    assert captured == {"id": 42}
 
 
 async def test_user_resource_me_returns_user_model():

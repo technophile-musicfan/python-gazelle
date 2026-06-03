@@ -69,6 +69,12 @@ async def capture(
                 json.dumps({"status": "success", "response": artist}, indent=2)
             )
             print(f"[{tracker}] Captured artist {artist_id}")
+
+            similar = await t.request("similar_artists", id=artist_id, limit=10)
+            (out / "similar_artists.json").write_text(
+                json.dumps({"status": "success", "response": similar}, indent=2)
+            )
+            print(f"[{tracker}] Captured similar_artists for {artist_id}")
         else:
             print(f"[{tracker}] WARNING: no artist id found, artist fixture skipped")
 
