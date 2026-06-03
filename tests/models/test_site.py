@@ -13,6 +13,15 @@ def test_blog_post_aliases():
     assert b.thread_id == 9
 
 
+def test_announcement_tolerates_missing_id():
+    # id fields are Optional so a divergent/partial tracker response degrades
+    # gracefully instead of raising (tracker-divergence convention).
+    a = Announcement.model_validate({"title": "T"})
+    assert a.news_id is None
+    b = BlogPost.model_validate({"title": "T"})
+    assert b.blog_id is None
+
+
 def test_announcements_container_defaults_empty():
     a = Announcements.model_validate({})
     assert a.announcements == []

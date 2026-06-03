@@ -17,14 +17,14 @@ class Top10Category(GazelleModel):
 
 
 class Announcement(GazelleModel):
-    news_id: int
+    news_id: int | None = None
     title: str | None = None
     body: str | None = None
     news_time: str | None = None
 
 
 class BlogPost(GazelleModel):
-    blog_id: int
+    blog_id: int | None = None
     title: str | None = None
     body: str | None = None
     blog_time: str | None = None
