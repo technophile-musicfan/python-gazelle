@@ -3,7 +3,17 @@ from typing import Any
 import pytest
 
 from pygazelle.errors import GazelleAPIError
-from pygazelle.models import Artist, Notification, SimilarArtist, Torrent, TorrentGroup, User
+from pygazelle.models import (
+    Artist,
+    Notification,
+    SimilarArtist,
+    Torrent,
+    TorrentGroup,
+    User,
+    UserProfile,
+    UserSearchResult,
+    UserTorrent,
+)
 from pygazelle.resources.artists import ArtistResource
 from pygazelle.resources.notifications import NotificationResource
 from pygazelle.resources.torrents import TorrentResource
@@ -189,6 +199,106 @@ async def test_artist_resource_similar_omits_limit_when_unset():
     transport = CapturingTransport({"similar_artists": []})
     await ArtistResource(transport).similar(42)
     assert transport.calls == {"id": 42}
+
+
+async def test_user_resource_get_returns_profile():
+    stub = StubTransport(
+        {
+            "user": {
+                "username": "alice",
+                "avatar": "http://example/a.png",
+                "isFriend": False,
+                "profileText": "hi",
+                "stats": {
+                    "joinedDate": "2020-01-01",
+                    "lastAccess": "2026-06-01",
+                    "uploaded": 1000,
+                    "downloaded": 500,
+                    "ratio": 2.0,
+                    "requiredRatio": 0.6,
+                },
+                "community": {
+                    "uploaded": 5,
+                    "groups": 3,
+                    "seeding": 10,
+                    "leeching": 0,
+                    "snatched": 20,
+                    "posts": 7,
+                },
+            }
+        }
+    )
+    profile = await UserResource(stub).get(42)
+    assert isinstance(profile, UserProfile)
+    # The API omits id; the resource injects the request param.
+    assert profile.id == 42
+    assert profile.username == "alice"
+    assert profile.stats is not None and profile.stats.uploaded == 1000
+    assert profile.community is not None and profile.community.seeding == 10
+
+
+async def test_user_resource_search_returns_results():
+    stub = StubTransport(
+        {
+            "usersearch": {
+                "currentPage": 1,
+                "pages": 1,
+                "results": [
+                    {
+                        "userId": 5,
+                        "username": "bob",
+                        "donor": True,
+                        "warned": False,
+                        "enabled": True,
+                        "class": "User",
+                    }
+                ],
+            }
+        }
+    )
+    results = await UserResource(stub).search("bob")
+    assert len(results) == 1
+    assert isinstance(results[0], UserSearchResult)
+    assert results[0].user_id == 5
+    # `class` is aliased to user_class.
+    assert results[0].user_class == "User"
+
+
+async def test_user_resource_torrents_reads_type_keyed_list():
+    stub = StubTransport(
+        {
+            "user_torrents": {
+                "seeding": [
+                    {
+                        "groupId": 1,
+                        "torrentId": 100,
+                        "name": "Album",
+                        "torrentSize": 500,
+                        "artistId": 3,
+                        "artistName": "X",
+                    }
+                ],
+                "total": 1,
+            }
+        }
+    )
+    results = await UserResource(stub).torrents(42, type="seeding")
+    assert len(results) == 1
+    assert isinstance(results[0], UserTorrent)
+    assert results[0].torrent_id == 100
+    assert results[0].artist_name == "X"
+
+
+async def test_user_resource_torrents_empty_when_type_absent():
+    stub = StubTransport({"user_torrents": {"total": 0}})
+    results = await UserResource(stub).torrents(42, type="seeding")
+    assert results == []
+
+
+async def test_user_resource_torrents_passes_params():
+    transport = CapturingTransport({"user_torrents": {"uploaded": [], "total": 0}})
+    await UserResource(transport).torrents(42, type="uploaded", limit=10, offset=20)
+    assert transport.calls == {"id": 42, "type": "uploaded", "limit": 10, "offset": 20}
 
 
 async def test_user_resource_me_returns_user_model():

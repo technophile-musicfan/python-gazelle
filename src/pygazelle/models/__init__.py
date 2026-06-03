@@ -4,7 +4,15 @@ from .inbox import Message
 from .notifications import Notification
 from .requests import Request, RequestResult
 from .torrents import BrowseTorrent, Torrent, TorrentFile, TorrentGroup, TorrentResult
-from .user import User, UserStats
+from .user import (
+    User,
+    UserCommunity,
+    UserProfile,
+    UserProfileStats,
+    UserSearchResult,
+    UserStats,
+    UserTorrent,
+)
 
 __all__ = [
     "Artist",
@@ -23,4 +31,9 @@ __all__ = [
     "TorrentResult",
     "User",
     "UserStats",
+    "UserProfile",
+    "UserProfileStats",
+    "UserCommunity",
+    "UserSearchResult",
+    "UserTorrent",
 ]

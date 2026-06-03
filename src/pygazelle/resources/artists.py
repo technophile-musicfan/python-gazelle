@@ -21,9 +21,7 @@ class ArtistResource(BaseResource):
         return list(seen.values())
 
     async def similar(self, artist_id: int, limit: int | None = None) -> list[SimilarArtist]:
-        params: dict[str, str | int] = {"id": artist_id}
-        if limit is not None:
-            params["limit"] = limit
+        params = self._params(id=artist_id, limit=limit)
         # similar_artists returns a bare JSON array (not a {results: ...} object);
         # request() is typed to return a dict, so treat the payload as untyped.
         raw: Any = await self._transport.request("similar_artists", **params)
