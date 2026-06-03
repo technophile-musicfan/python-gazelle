@@ -3,6 +3,8 @@
 A typed, async-first Python client library for [Gazelle](https://github.com/WhatCD/Gazelle)-based
 music trackers, with built-in support for **Orpheus** and **Redacted (RED)**.
 
+📖 **[Full documentation](https://technophile-musicfan.github.io/python-gazelle/)** — guides + auto-generated API reference.
+
 - **Async-first**, built on [httpx](https://www.python-httpx.org/) — with synchronous wrappers if you prefer blocking calls.
 - **Typed responses** via [pydantic v2](https://docs.pydantic.dev/) models.
 - **API-key or cookie/login** authentication.
@@ -138,6 +140,11 @@ run the test suite (including `.env` setup and capturing API fixtures for the
 model tests).
 
 ## Project Docs
+
+The full docs site (user guides + auto-generated API reference) is published at
+**<https://technophile-musicfan.github.io/python-gazelle/>**. It's built with MkDocs
++ Material + mkdocstrings; build it locally with `make docs` or preview with
+`make docs-serve`.
 
 For how to install uv and Python, see [installation.md](docs/installation.md).
 

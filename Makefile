@@ -4,7 +4,7 @@
 
 .DEFAULT_GOAL := default
 
-.PHONY: default install lint lint-check test upgrade build clean
+.PHONY: default install lint lint-check test upgrade build clean docs docs-serve
 
 default: install lint test
 
@@ -26,6 +26,14 @@ upgrade:
 
 build:
 	uv build
+
+# Build the docs site (strict mode, matching CI).
+docs:
+	uv run --group docs mkdocs build --strict
+
+# Serve the docs locally with live reload at http://127.0.0.1:8000
+docs-serve:
+	uv run --group docs mkdocs serve
 
 clean:
 	-rm -rf dist/

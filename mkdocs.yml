@@ -1,0 +1,95 @@
+site_name: python-gazelle
+site_description: A typed, async-first Python client library for Gazelle-based music trackers.
+site_author: HOZHENWAI
+repo_url: https://github.com/technophile-musicfan/python-gazelle
+repo_name: technophile-musicfan/python-gazelle
+edit_uri: edit/main/docs/
+
+theme:
+  name: material
+  features:
+    - navigation.sections
+    - navigation.top
+    - navigation.tracking
+    - content.code.copy
+    - content.code.annotate
+    - search.suggest
+    - search.highlight
+    - toc.follow
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: deep purple
+      accent: deep purple
+      toggle:
+        icon: material/weather-night
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: deep purple
+      accent: deep purple
+      toggle:
+        icon: material/weather-sunny
+        name: Switch to light mode
+
+nav:
+  - Home: index.md
+  - Guide:
+      - Installation: guide/installation.md
+      - Quick start: guide/quickstart.md
+      - Authentication: guide/authentication.md
+      - Rate limiting & retries: guide/rate-limiting.md
+      - Error handling: guide/error-handling.md
+  - API Reference:
+      - Clients: reference/clients.md
+      - Resources: reference/resources.md
+      - Models: reference/models.md
+      - Errors: reference/errors.md
+      - Transport: reference/transport.md
+  - Development: development.md
+  - Publishing: publishing.md
+
+# Internal design docs and the dev-oriented top-level installation page are kept
+# in the repo but excluded from the published site (the site uses guide/*).
+exclude_docs: |
+  superpowers/
+  /installation.md
+
+plugins:
+  - search
+  - mkdocstrings:
+      default_handler: python
+      handlers:
+        python:
+          paths: [src]
+          options:
+            docstring_style: google
+            # The library is fully typed but docstrings are sparse; still render
+            # members (signatures + type annotations) when a docstring is absent.
+            show_if_no_docstring: true
+            show_source: true
+            show_root_heading: true
+            show_symbol_type_heading: true
+            show_symbol_type_toc: true
+            separate_signature: true
+            show_signature_annotations: true
+            signature_crossrefs: true
+            merge_init_into_class: true
+            members_order: source
+            filters: ["!^_"]
+
+markdown_extensions:
+  - admonition
+  - pymdownx.details
+  - pymdownx.superfences
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - toc:
+      permalink: true
+
+extra:
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/technophile-musicfan/python-gazelle
