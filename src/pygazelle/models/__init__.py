@@ -16,7 +16,14 @@ from .notifications import Notification
 from .requests import Request, RequestResult
 from .site import Announcement, Announcements, BlogPost, Top10Category
 from .subscriptions import ForumSubscription
-from .torrents import BrowseTorrent, Torrent, TorrentFile, TorrentGroup, TorrentResult
+from .torrents import (
+    BrowseTorrent,
+    CollageRef,
+    Torrent,
+    TorrentFile,
+    TorrentGroup,
+    TorrentResult,
+)
 from .user import (
     User,
     UserCommunity,
@@ -56,6 +63,7 @@ __all__ = [
     "TorrentFile",
     "TorrentGroup",
     "TorrentResult",
+    "CollageRef",
     "TagAddition",
     "LogSummary",
     "LogAddition",

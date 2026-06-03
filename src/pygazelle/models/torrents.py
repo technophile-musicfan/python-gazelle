@@ -33,6 +33,19 @@ class TorrentArtist(GazelleModel):
     name: str
 
 
+class CollageRef(GazelleModel):
+    """A collage a torrent group belongs to (id/name/count only).
+
+    Lighter than :class:`~.collages.Collage` (no contents); defined here rather
+    than reusing Collage to avoid a circular import (``collages`` imports
+    :class:`TorrentGroup`).
+    """
+
+    id: int
+    name: str | None = None
+    num_torrents: int | None = None
+
+
 class TorrentGroup(GazelleModel):
     id: int
     name: str
@@ -58,6 +71,9 @@ class TorrentGroup(GazelleModel):
     proxy_image: str | None = None  # proxied cover URL; Orpheus-only
     is_bookmarked: bool | None = None
     time: str | None = None
+    # Collage memberships (RED group block; Orpheus omits).
+    collages: list[CollageRef] = []
+    personal_collages: list[CollageRef] = []
     # Populated by TorrentResource.get_group(); empty when this group is embedded
     # in a single Torrent (action=torrent).
     torrents: list["Torrent"] = []
