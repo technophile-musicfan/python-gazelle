@@ -1,0 +1,65 @@
+# Build the MkDocs site and deploy it to GitHub Pages.
+# Enable Pages for the repo under Settings -> Pages -> Source: "GitHub Actions".
+
+name: Docs
+
+on:
+  push:
+    branches: ["main", "master"]
+  # Allow manual runs from the Actions tab.
+  workflow_dispatch:
+
+# Allow the deploy job to publish to Pages.
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Allow one concurrent deployment; don't cancel in-progress runs.
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout (official GitHub action)
+        uses: actions/checkout@v6
+        with:
+          # Important for versioning plugins.
+          fetch-depth: 0
+
+      - name: Install uv (official Astral action)
+        uses: astral-sh/setup-uv@v8.1.0
+        with:
+          version: "0.11.12"
+          enable-cache: true
+
+      - name: Set up Python (using uv)
+        run: uv python install
+
+      - name: Set supply-chain cool-off cutoff
+        run: echo "UV_EXCLUDE_NEWER=$(date -u -d '14 days ago' +%Y-%m-%d)" >> "$GITHUB_ENV"
+
+      - name: Install docs dependencies
+        run: uv sync --group docs
+
+      - name: Build site
+        run: uv run mkdocs build --strict
+
+      - name: Upload Pages artifact (official GitHub action)
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages (official GitHub action)
+        id: deployment
+        uses: actions/deploy-pages@v4
