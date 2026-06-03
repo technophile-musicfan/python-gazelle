@@ -19,6 +19,7 @@ from .subscriptions import ForumSubscription
 from .torrents import (
     BrowseTorrent,
     CollageRef,
+    MusicInfo,
     Torrent,
     TorrentFile,
     TorrentGroup,
@@ -64,6 +65,7 @@ __all__ = [
     "TorrentGroup",
     "TorrentResult",
     "CollageRef",
+    "MusicInfo",
     "TagAddition",
     "LogSummary",
     "LogAddition",

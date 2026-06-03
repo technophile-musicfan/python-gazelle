@@ -1,6 +1,7 @@
 from pygazelle.models.torrents import (
     BrowseTorrent,
     CollageRef,
+    MusicInfo,
     Torrent,
     TorrentFile,
     TorrentGroup,
@@ -217,6 +218,33 @@ def test_torrentgroup_collages_default_when_absent():
     group = TorrentGroup.model_validate({"id": 1, "name": "X", "year": 2020})
     assert group.collages == []
     assert group.personal_collages == []
+
+
+def test_torrentgroup_music_info_credits_redacted(redacted_torrent):
+    group = TorrentGroup.model_validate(redacted_torrent["group"])
+    assert isinstance(group.music_info, MusicInfo)
+    # "with" (a Python keyword) is exposed as with_.
+    assert [a.name for a in group.music_info.with_] == [
+        "Becky G",
+        "G-Dragon (지드래곤)",
+        "Ty Dolla $ign",
+    ]
+    assert group.music_info.artists[0].id == 1114874
+    assert group.music_info.composers == []
+    # The top-level artists lift still works alongside music_info.
+    assert group.artists[0].id == 1114874
+
+
+def test_torrentgroup_music_info_empty_roles_orpheus(orpheus_torrent):
+    group = TorrentGroup.model_validate(orpheus_torrent["group"])
+    assert group.music_info is not None
+    assert group.music_info.with_ == []
+    assert [a.name for a in group.music_info.artists] == ["Dead Point"]
+
+
+def test_torrentgroup_music_info_none_when_absent():
+    group = TorrentGroup.model_validate({"id": 1, "name": "X", "year": 2020})
+    assert group.music_info is None
 
 
 def test_torrentgroup_populates_artists_from_music_info():
