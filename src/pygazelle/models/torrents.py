@@ -133,6 +133,26 @@ class BrowseTorrent(GazelleModel):
     format: str
     encoding: str
     media: str
+    edition_id: int | None = None
+    artists: list[TorrentArtist] = []
+    remaster_year: int | None = None
+    remaster_title: str | None = None
+    remaster_record_label: str | None = None
+    remaster_catalogue_number: str | None = None
+    has_log: bool | None = None
+    log_score: int | None = None
+    has_cue: bool | None = None
+    scene: bool | None = None
+    vanity_house: bool | None = None
+    time: str | None = None
+    seeders: int | None = None
+    leechers: int | None = None
+    snatches: int | None = None
+    is_freeleech: bool | None = None
+    is_neutral_leech: bool | None = None
+    is_personal_freeleech: bool | None = None
+    can_use_token: bool | None = None
+    has_snatched: bool | None = None
 
 
 class TorrentResult(GazelleModel):
@@ -146,6 +166,14 @@ class TorrentResult(GazelleModel):
     total_leechers: int
     total_snatched: int
     torrents: list[BrowseTorrent] = []
+    cover: str | None = None  # cover image URL
+    bookmarked: bool | None = None
+    vanity_house: bool | None = None
+    # The browse group row reports release type as a string ("Album"/"Remix"),
+    # unlike TorrentGroup.release_type which is an int code.
+    release_type: str | None = None
+    # Datetime string on Orpheus, epoch-seconds string on RED — kept raw.
+    group_time: str | None = None
 
 
 # TorrentGroup.torrents forward-references Torrent (defined after it); resolve now.
