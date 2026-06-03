@@ -88,6 +88,14 @@ class GazelleSyncClient:
     def notifications(self) -> _SyncProxy:
         return _SyncProxy(self._async.notifications, self._bg)
 
+    @property
+    def bookmarks(self) -> _SyncProxy:
+        return _SyncProxy(self._async.bookmarks, self._bg)
+
+    @property
+    def subscriptions(self) -> _SyncProxy:
+        return _SyncProxy(self._async.subscriptions, self._bg)
+
     def close(self) -> None:
         self._bg.run(self._async.aclose())
         self._bg.stop()

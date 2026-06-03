@@ -3,10 +3,12 @@ from __future__ import annotations
 from typing import Unpack
 
 from .resources.artists import ArtistResource
+from .resources.bookmarks import BookmarkResource
 from .resources.collages import CollageResource
 from .resources.inbox import InboxResource
 from .resources.notifications import NotificationResource
 from .resources.requests import RequestResource
+from .resources.subscriptions import SubscriptionResource
 from .resources.torrents import TorrentResource
 from .resources.user import UserResource
 from .transport import GazelleTransport, TransportOptions
@@ -26,6 +28,8 @@ class GazelleClient:
         self._user: UserResource | None = None
         self._inbox: InboxResource | None = None
         self._notifications: NotificationResource | None = None
+        self._bookmarks: BookmarkResource | None = None
+        self._subscriptions: SubscriptionResource | None = None
 
     @property
     def torrents(self) -> TorrentResource:
@@ -68,6 +72,18 @@ class GazelleClient:
         if self._notifications is None:
             self._notifications = NotificationResource(self._transport)
         return self._notifications
+
+    @property
+    def bookmarks(self) -> BookmarkResource:
+        if self._bookmarks is None:
+            self._bookmarks = BookmarkResource(self._transport)
+        return self._bookmarks
+
+    @property
+    def subscriptions(self) -> SubscriptionResource:
+        if self._subscriptions is None:
+            self._subscriptions = SubscriptionResource(self._transport)
+        return self._subscriptions
 
     async def aclose(self) -> None:
         await self._transport.aclose()

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, Literal
+from typing import Literal
 
 from ..models.user import User, UserProfile, UserSearchResult, UserTorrent
 from .base import BaseResource
@@ -28,7 +28,7 @@ class UserResource(BaseResource):
 
     async def search(self, query: str, **params: str | int) -> list[UserSearchResult]:
         data = await self._transport.request("usersearch", search=query, **params)
-        return [UserSearchResult.model_validate(r) for r in data.get("results", [])]
+        return self._parse_list(data.get("results"), UserSearchResult)
 
     async def torrents(
         self,
@@ -40,5 +40,4 @@ class UserResource(BaseResource):
         params = self._params(id=user_id, type=type, limit=limit, offset=offset)
         data = await self._transport.request("user_torrents", **params)
         # The torrents list is keyed under the requested type (e.g. "seeding": [...]).
-        items: list[Any] = data.get(type) or []
-        return [UserTorrent.model_validate(t) for t in items]
+        return self._parse_list(data.get(type), UserTorrent)
