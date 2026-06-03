@@ -275,3 +275,84 @@ def test_browse_result_parses_nested_torrents_redacted(redacted_browse):
     result = TorrentResult.model_validate(results[0])
     assert result.torrents
     assert isinstance(result.torrents[0].torrent_id, int)
+
+
+def test_browse_torrent_enriched_orpheus(orpheus_browse):
+    result = TorrentResult.model_validate(orpheus_browse["results"][0])
+    t = result.torrents[0]
+    assert t.edition_id == 1
+    assert t.has_log is True
+    assert t.log_score == 100
+    assert t.has_cue is True
+    assert t.scene is False
+    assert t.seeders == 7
+    assert t.leechers == 0
+    assert t.snatches == 6
+    assert t.remaster_year == 2025
+    assert t.remaster_record_label == "More Hate Productions"
+    assert t.is_freeleech is False
+    assert t.can_use_token is True
+    assert t.has_snatched is False
+    assert t.artists[0].name == "Dead Point"
+
+
+def test_browse_torrent_enriched_redacted(redacted_browse):
+    result = TorrentResult.model_validate(redacted_browse["results"][0])
+    t = result.torrents[0]
+    assert t.edition_id == 1
+    assert t.seeders == 8
+    assert t.snatches == 8
+    assert t.remaster_year == 2026
+    assert t.is_freeleech is False
+    assert t.has_snatched is False
+    assert t.artists[0].name == "aespa (에스파)"
+
+
+def test_browse_result_group_extras_orpheus(orpheus_browse):
+    result = TorrentResult.model_validate(orpheus_browse["results"][0])
+    assert result.cover is not None
+    assert result.bookmarked is False
+    assert result.vanity_house is False
+    assert result.group_time == "2026-05-30 10:44:54"
+    assert result.release_type == "Album"
+
+
+def test_browse_result_group_extras_redacted(redacted_browse):
+    result = TorrentResult.model_validate(redacted_browse["results"][0])
+    assert result.cover is not None
+    assert result.release_type == "Remix"
+    assert result.group_time is not None
+
+
+def test_browse_enrichment_defaults_when_absent():
+    result = TorrentResult.model_validate(
+        {
+            "groupId": 1,
+            "groupName": "G",
+            "artist": "A",
+            "groupYear": 2020,
+            "maxSize": 0,
+            "totalSeeders": 0,
+            "totalLeechers": 0,
+            "totalSnatched": 0,
+            "torrents": [
+                {
+                    "torrentId": 1,
+                    "size": 0,
+                    "fileCount": 0,
+                    "format": "FLAC",
+                    "encoding": "Lossless",
+                    "media": "CD",
+                }
+            ],
+        }
+    )
+    assert result.cover is None
+    assert result.bookmarked is None
+    assert result.release_type is None
+    assert result.group_time is None
+    t = result.torrents[0]
+    assert t.edition_id is None
+    assert t.artists == []
+    assert t.is_freeleech is None
+    assert t.seeders is None
