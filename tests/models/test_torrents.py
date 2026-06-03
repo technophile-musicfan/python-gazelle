@@ -1,5 +1,6 @@
 from pygazelle.models.torrents import (
     BrowseTorrent,
+    CollageRef,
     Torrent,
     TorrentFile,
     TorrentGroup,
@@ -191,6 +192,31 @@ def test_torrentgroup_extras_default_none_when_absent():
     assert group.wiki_bbcode is None
     assert group.is_bookmarked is None
     assert group.time is None
+
+
+def test_torrentgroup_collage_memberships_redacted(redacted_torrent):
+    group = TorrentGroup.model_validate(redacted_torrent["group"])
+    assert len(group.collages) == 1
+    c = group.collages[0]
+    assert isinstance(c, CollageRef)
+    assert c.id == 26837
+    assert c.name == "Citrus on Album Covers"
+    assert c.num_torrents == 360
+    assert group.personal_collages[0].id == 39862
+    assert group.personal_collages[0].num_torrents == 164
+
+
+def test_torrentgroup_collages_default_empty_orpheus(orpheus_torrent):
+    # Orpheus's group block omits collage memberships.
+    group = TorrentGroup.model_validate(orpheus_torrent["group"])
+    assert group.collages == []
+    assert group.personal_collages == []
+
+
+def test_torrentgroup_collages_default_when_absent():
+    group = TorrentGroup.model_validate({"id": 1, "name": "X", "year": 2020})
+    assert group.collages == []
+    assert group.personal_collages == []
 
 
 def test_torrentgroup_populates_artists_from_music_info():
