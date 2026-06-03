@@ -31,7 +31,9 @@ class UserProfileStats(GazelleModel):
 class UserCommunity(GazelleModel):
     """The `community` block of an action=user profile response (subset)."""
 
-    uploaded: int | None = None  # number of torrents uploaded
+    # API key is "uploaded" but this is a torrent COUNT, not bytes (cf.
+    # UserProfileStats.uploaded); rename to avoid a same-name unit collision.
+    uploaded_count: int | None = Field(default=None, alias="uploaded")
     groups: int | None = None
     seeding: int | None = None
     leeching: int | None = None

@@ -9,3 +9,8 @@ if TYPE_CHECKING:
 class BaseResource:
     def __init__(self, transport: SupportsTransport) -> None:
         self._transport: SupportsTransport = transport
+
+    @staticmethod
+    def _params(**kwargs: str | int | None) -> dict[str, str | int]:
+        """Build a request param dict, dropping any entry whose value is None."""
+        return {key: value for key, value in kwargs.items() if value is not None}
