@@ -68,6 +68,68 @@ def test_torrent_files_empty_when_no_file_list():
     assert torrent.files == []
 
 
+def test_torrent_edition_fields_orpheus(orpheus_torrent):
+    torrent = Torrent.model_validate(orpheus_torrent["torrent"])
+    assert torrent.remaster_year == 2025
+    assert torrent.remaster_title == ""
+    assert torrent.remaster_record_label == "More Hate Productions"
+    assert torrent.remaster_catalogue_number == "MHP 25-530"
+    assert torrent.description == ""
+    # Log detail + freeleech reason are Orpheus-only in the torrent block.
+    assert torrent.log_checksum is True
+    assert torrent.log_count == 1
+    assert torrent.rip_log_ids == [903694]
+    assert torrent.free_reason == "Normal"
+    assert torrent.reported is False
+
+
+def test_torrent_edition_fields_redacted(redacted_torrent):
+    torrent = Torrent.model_validate(redacted_torrent["torrent"])
+    assert torrent.remaster_year == 2026
+    assert torrent.remaster_record_label == "SM Entertainment"
+    assert torrent.rip_log_ids == []
+    assert torrent.reported is False
+    assert torrent.description is not None
+    assert torrent.description.startswith("[color")
+    # RED omits these (Orpheus-only) -> tolerant None.
+    assert torrent.log_checksum is None
+    assert torrent.log_count is None
+    assert torrent.free_reason is None
+
+
+def test_torrent_edition_fields_default_none_when_absent():
+    torrent = Torrent.model_validate(
+        {
+            "id": 1,
+            "media": "CD",
+            "format": "FLAC",
+            "encoding": "Lossless",
+            "scene": False,
+            "hasLog": False,
+            "hasCue": False,
+            "logScore": 0,
+            "fileCount": 0,
+            "size": 0,
+            "seeders": 0,
+            "leechers": 0,
+            "snatched": 0,
+            "freeTorrent": False,
+            "time": "t",
+            "filePath": "p",
+            "userId": 1,
+            "username": "u",
+        }
+    )
+    assert torrent.remaster_year is None
+    assert torrent.remaster_title is None
+    assert torrent.description is None
+    assert torrent.log_checksum is None
+    assert torrent.log_count is None
+    assert torrent.rip_log_ids == []
+    assert torrent.free_reason is None
+    assert torrent.reported is None
+
+
 def test_torrent_exposes_trumpable_orpheus(orpheus_torrent):
     torrent = Torrent.model_validate(orpheus_torrent["torrent"])
     assert torrent.trumpable is False
