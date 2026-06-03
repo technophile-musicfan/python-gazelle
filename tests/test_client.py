@@ -553,6 +553,24 @@ async def test_request_fill_requires_torrent_or_link():
         await RequestResource(transport).fill(3)
 
 
+async def test_add_tag_rejects_empty_tags():
+    transport = CapturingTransport({})
+    with pytest.raises(ValueError):
+        await TorrentResource(transport).add_tag(5, [])
+    with pytest.raises(ValueError):
+        await TorrentResource(transport).add_tag(5, "")
+    assert transport.write_calls == []
+
+
+async def test_add_log_rejects_empty_logfiles():
+    transport = CapturingTransport({})
+    with pytest.raises(ValueError):
+        await TorrentResource(transport).add_log(9, [])
+    with pytest.raises(ValueError):
+        await TorrentResource(transport).add_log(9, b"")
+    assert transport.write_calls == []
+
+
 async def test_user_resource_me_returns_user_model():
     stub = StubTransport(
         {

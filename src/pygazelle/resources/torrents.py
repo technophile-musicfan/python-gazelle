@@ -35,7 +35,10 @@ class TorrentResource(BaseResource):
 
         ``tags`` may be a single tag, a comma-separated string, or a list of
         tags (joined into the comma-separated ``tagname`` the API expects).
+        Raises ``ValueError`` if no tags are given.
         """
+        if not tags:
+            raise ValueError("add_tag requires at least one tag")
         tagname = tags if isinstance(tags, str) else ",".join(tags)
         data = await self._transport.request_write(
             "add_tag", data={"groupid": group_id, "tagname": tagname}
@@ -46,7 +49,10 @@ class TorrentResource(BaseResource):
         """Attach rip log file(s) to a torrent (action=add_log).
 
         The torrent id is a query param; the logs are multipart ``logfiles[]``.
+        Raises ``ValueError`` if no log files are given.
         """
+        if not logfiles:
+            raise ValueError("add_log requires at least one log file")
         blobs = [logfiles] if isinstance(logfiles, bytes) else list(logfiles)
         files = [("logfiles[]", (f"rip{i}.log", blob)) for i, blob in enumerate(blobs)]
         data = await self._transport.request_write(
