@@ -1,4 +1,7 @@
-from pygazelle.models import Artist, Notification, Torrent, User
+import pytest
+
+from pygazelle.errors import GazelleAPIError
+from pygazelle.models import Artist, Notification, Torrent, TorrentGroup, User
 from pygazelle.resources.artists import ArtistResource
 from pygazelle.resources.notifications import NotificationResource
 from pygazelle.resources.torrents import TorrentResource
@@ -51,6 +54,85 @@ async def test_torrent_resource_get_returns_torrent_model():
     assert isinstance(torrent, Torrent)
     assert torrent.id == 100
     assert torrent.format == "FLAC"
+
+
+async def test_torrent_resource_get_group_returns_group_with_torrents():
+    stub = StubTransport(
+        {
+            "torrentgroup": {
+                "group": {
+                    "id": 7,
+                    "name": "Album",
+                    "year": 2020,
+                    "categoryName": "Music",
+                    "releaseType": 1,
+                    "wikiBody": "<p>notes</p>",
+                    "tags": ["rock"],
+                    "musicInfo": {"artists": [{"id": 3, "name": "Radiohead"}]},
+                },
+                "torrents": [
+                    {
+                        "id": 100,
+                        "media": "CD",
+                        "format": "FLAC",
+                        "encoding": "Lossless",
+                        "scene": False,
+                        "hasLog": True,
+                        "hasCue": True,
+                        "logScore": 100,
+                        "fileCount": 12,
+                        "size": 500000000,
+                        "seeders": 10,
+                        "leechers": 1,
+                        "snatched": 50,
+                        "freeTorrent": False,
+                        "time": "2020-01-01 00:00:00",
+                        "filePath": "Artist - Album",
+                        "userId": 1,
+                        "username": "uploader",
+                    },
+                    {
+                        "id": 101,
+                        "media": "WEB",
+                        "format": "MP3",
+                        "encoding": "320",
+                        "scene": False,
+                        "hasLog": False,
+                        "hasCue": False,
+                        "logScore": 0,
+                        "fileCount": 11,
+                        "size": 90000000,
+                        "seeders": 5,
+                        "leechers": 0,
+                        "snatched": 20,
+                        "freeTorrent": False,
+                        "time": "2020-01-02 00:00:00",
+                        "filePath": "Artist - Album [WEB]",
+                        "userId": 2,
+                        "username": "uploader2",
+                    },
+                ],
+            }
+        }
+    )
+    resource = TorrentResource(stub)
+    group = await resource.get_group(7)
+    assert isinstance(group, TorrentGroup)
+    assert group.id == 7
+    assert group.category_name == "Music"
+    # editions are parsed as full Torrent models, sans embedded group
+    assert [t.id for t in group.torrents] == [100, 101]
+    assert all(isinstance(t, Torrent) for t in group.torrents)
+    assert group.torrents[0].format == "FLAC"
+    # artists are surfaced from musicInfo, which has no top-level "artists" key
+    assert [a.name for a in group.artists] == ["Radiohead"]
+
+
+async def test_torrent_resource_get_group_raises_on_missing_group():
+    stub = StubTransport({"torrentgroup": {"torrents": []}})
+    resource = TorrentResource(stub)
+    with pytest.raises(GazelleAPIError):
+        await resource.get_group(7)
 
 
 async def test_torrent_resource_download_returns_bytes():
