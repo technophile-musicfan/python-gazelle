@@ -117,6 +117,37 @@ async with OrpheusClient(api_key="...") as source, RedactedClient(api_key="...")
 
 A synchronous `cross_seed_sync(source_sync_client, source_torrent_id, target_sync_client)` is also available.
 
+## Cross-uploading a release to another tracker
+
+Cross-upload is a deliberate two-step flow: a read-only `prepare_upload` (maps
+metadata, checks the target for duplicates, builds a draft — no write), then an
+explicit `submit_upload` (the live upload). You build the target `.torrent`
+yourself (the library never generates or parses it).
+
+```python
+from pygazelle import OrpheusClient, RedactedClient, prepare_upload, submit_upload
+
+async with OrpheusClient(api_key="...") as source, RedactedClient(api_key="...") as target:
+    # Build a .torrent for the target's announce URL with your own tool, then:
+    announce = await target.user.announce_url()        # e.g. mktorrent --announce <announce> <data>
+    torrent_bytes = open("for-target.torrent", "rb").read()
+
+    draft = await prepare_upload(source, 12345, target, torrent_file=torrent_bytes)
+
+    # Review before the live write:
+    for field in draft.unmapped:                       # fields the mapper couldn't resolve
+        draft.form[field] = ...                         # fill them in
+    if any(d.kind == "exact" for d in draft.duplicates):
+        print("already on target; skipping")
+    else:
+        result = await submit_upload(target, draft)     # the live upload
+        print("uploaded:", result.torrent_id)
+```
+
+`submit_upload` refuses if a required field is still missing or an exact
+duplicate exists (pass `allow_duplicate=True` to override). Synchronous
+`prepare_upload_sync` / `submit_upload_sync` are also available.
+
 ## Authentication
 
 Pass either an API key or username/password (cookie/login auth):
