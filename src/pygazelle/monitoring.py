@@ -3,13 +3,16 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from .errors import GazelleNotFoundError
-from .models.monitoring import MonitoredTorrent, MonitorSnapshot, TorrentChangeEvent
+from .models.monitoring import (
+    ChangeKind,
+    MonitoredTorrent,
+    MonitorSnapshot,
+    TorrentChangeEvent,
+)
 
 if TYPE_CHECKING:
     from .client import GazelleClient
     from .resources.user import UserTorrentType
-
-from .models.monitoring import ChangeKind
 
 
 class TorrentMonitor:
