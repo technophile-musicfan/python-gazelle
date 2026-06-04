@@ -73,6 +73,32 @@ finally:
     client.close()
 ```
 
+## Monitoring your uploads & snatches
+
+Track when your uploaded or snatched torrents disappear (deleted, trumped, or
+otherwise removed). The monitor is stateless and caller-paced — no background
+threads or timers:
+
+```python
+from pygazelle import OrpheusClient
+
+async with OrpheusClient(api_key="...") as client:
+    monitor = client.monitor()           # watches uploaded + snatched by default
+    await monitor.poll()                  # first call establishes the baseline -> []
+
+    # ... later (you control the cadence) ...
+    for event in await monitor.poll():
+        print(event.kind, event.source, event.torrent_id, event.name)
+        if event.kind == "trumped":
+            print("replaced by", event.replacement_torrent_id)
+
+    # Persist the baseline across restarts (storage is yours):
+    state = monitor.dump_state()          # json-serializable
+    # monitor.load_state(state)
+```
+
+`client.monitor()` is also available on the sync client (`OrpheusClientSync`).
+
 ## Authentication
 
 Pass either an API key or username/password (cookie/login auth):
