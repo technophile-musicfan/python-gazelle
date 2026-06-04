@@ -8,7 +8,7 @@ def test_sync_monitor_poll_returns_without_await():
         pages={"uploaded": [[make_user_torrent_row(10, 5, "A")], []], "snatched": [[]]},
         missing_groups=(5,),
     )
-    sync_client = GazelleSyncClient(GazelleClient(transport))  # type: ignore[arg-type]
+    sync_client = GazelleSyncClient(GazelleClient(transport))  # pyright: ignore[reportArgumentType]
     try:
         monitor = sync_client.monitor(page_size=1)
         assert monitor.poll() == []  # baseline, no await

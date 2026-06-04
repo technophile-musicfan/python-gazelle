@@ -10,7 +10,7 @@ from tests.support import MonitorTransport, make_user_torrent_row
 
 
 def _client(transport: MonitorTransport) -> GazelleClient:
-    return GazelleClient(transport)  # type: ignore[arg-type]
+    return GazelleClient(transport)  # pyright: ignore[reportArgumentType]
 
 
 async def test_first_poll_establishes_baseline_returns_empty():
@@ -143,6 +143,7 @@ async def test_dump_and_load_state_round_trip():
     await source.poll()  # baseline with torrent 10
 
     state = source.dump_state()
+    assert state is not None  # a snapshot exists after the baseline poll
     assert json.loads(json.dumps(state)) == state  # genuinely json-serializable
 
     # Restore into a fresh monitor; it treats the restored snapshot as baseline.
