@@ -158,6 +158,8 @@ reportAny = false
 reportExplicitAny = false
 reportImplicitStringConcatenation = false
 reportUnreachable = false
+# client.py ↔ monitoring.py is a TYPE_CHECKING-only cycle (safe at runtime).
+reportImportCycles = false
 # reportPrivateImportUsage = false
 # reportPrivateLocalImportUsage = false
 # reportMissingImports = false

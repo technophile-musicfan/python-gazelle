@@ -6,6 +6,8 @@ from .errors import (
     GazelleNotFoundError,
     GazelleRateLimitError,
 )
+from .models.monitoring import TorrentChangeEvent
+from .monitoring import TorrentMonitor
 from .sync import GazelleSyncClient, OrpheusClientSync, RedactedClientSync
 
 __all__ = [
@@ -20,4 +22,6 @@ __all__ = [
     "GazelleRateLimitError",
     "GazelleNotFoundError",
     "GazelleAPIError",
+    "TorrentMonitor",
+    "TorrentChangeEvent",
 ]

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Unpack
+from typing import TYPE_CHECKING, Unpack
 
 from .resources.artists import ArtistResource
 from .resources.bookmarks import BookmarkResource
@@ -11,8 +11,12 @@ from .resources.requests import RequestResource
 from .resources.site import SiteResource
 from .resources.subscriptions import SubscriptionResource
 from .resources.torrents import TorrentResource
-from .resources.user import UserResource
+from .resources.user import UserResource, UserTorrentType
 from .transport import GazelleTransport, TransportOptions
+
+if TYPE_CHECKING:
+    from .monitoring import TorrentMonitor
+
 
 ORPHEUS_BASE_URL = "https://orpheus.network"
 # RED migrated from redacted.ch to redacted.sh; the old domain returns HTTP 410.
@@ -92,6 +96,17 @@ class GazelleClient:
         if self._site is None:
             self._site = SiteResource(self._transport)
         return self._site
+
+    def monitor(
+        self,
+        *,
+        sources: tuple[UserTorrentType, ...] = ("uploaded", "snatched"),
+        page_size: int = 50,
+    ) -> TorrentMonitor:
+        """Construct a TorrentMonitor bound to this client."""
+        from .monitoring import TorrentMonitor as _TorrentMonitor
+
+        return _TorrentMonitor(self, sources=sources, page_size=page_size)
 
     async def aclose(self) -> None:
         await self._transport.aclose()

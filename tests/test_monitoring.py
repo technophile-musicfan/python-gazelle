@@ -4,6 +4,7 @@ import pytest
 
 from pygazelle.client import GazelleClient
 from pygazelle.errors import GazelleAPIError
+from pygazelle.models.monitoring import TorrentChangeEvent
 from pygazelle.monitoring import TorrentMonitor
 from tests.support import MonitorTransport, make_user_torrent_row
 
@@ -154,3 +155,30 @@ async def test_dump_and_load_state_round_trip():
 async def test_dump_state_before_first_poll_is_none():
     transport = MonitorTransport(pages={"uploaded": [[]], "snatched": [[]]})
     assert TorrentMonitor(_client(transport)).dump_state() is None
+
+
+async def test_client_monitor_factory_returns_bound_monitor():
+    transport = MonitorTransport(
+        pages={"uploaded": [[make_user_torrent_row(10, 5, "A")]], "snatched": [[]]}
+    )
+    client = _client(transport)
+    monitor = client.monitor()
+    assert isinstance(monitor, TorrentMonitor)
+    assert await monitor.poll() == []
+
+
+async def test_client_monitor_factory_passes_sources():
+    transport = MonitorTransport(pages={"snatched": [[]]})
+    monitor = _client(transport).monitor(sources=("snatched",))
+    await monitor.poll()
+    assert monitor._snapshot is not None
+    assert set(monitor._snapshot.sources) == {"snatched"}
+
+
+def test_public_exports():
+    import pygazelle
+
+    assert pygazelle.TorrentMonitor is TorrentMonitor
+    assert pygazelle.TorrentChangeEvent is TorrentChangeEvent
+    assert "TorrentMonitor" in pygazelle.__all__
+    assert "TorrentChangeEvent" in pygazelle.__all__
