@@ -1,5 +1,10 @@
-## ADDED Requirements
+# Capability: torrent-monitoring
 
+## Purpose
+
+Watch the current user's uploaded and snatched torrents for deletion and trump, surfacing them as typed change events. The library auto-discovers the watch list from the tracker and exposes a stateless `poll()` primitive: each call returns the changes since the previous snapshot, detected by diffing successive `user_torrents` snapshots and classifying each disappearance with a single targeted group lookup (rate-limit safe). The caller owns cadence and any cross-restart persistence. Available on both the async and synchronous client surfaces.
+
+## Requirements
 ### Requirement: Auto-discovered watch list
 The monitor SHALL discover the set of torrents to watch from the tracker — the
 current user's uploaded and snatched torrents — without the caller supplying
@@ -36,7 +41,8 @@ timer, or callbacks; the caller controls cadence.
 
 ### Requirement: Deletion, trump, and removal classification
 Each change event SHALL classify a removed torrent as `deleted`, `trumped`, or
-`removed` (unknown), and carry the torrent id, source, group id, and group name.
+`removed` (unknown), and carry the torrent id, source, group id, and release name
+(the `UserTorrent.name` field; the API exposes no separate group-name field).
 A `trumped` event SHALL include the replacement torrent id.
 
 #### Scenario: Trumped torrent

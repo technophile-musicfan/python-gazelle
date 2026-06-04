@@ -12,6 +12,7 @@ from .artists import (
 from .bookmarks import BookmarkedArtist, BookmarkedTorrent, BookmarkedTorrentGroup
 from .collages import Collage
 from .inbox import Message
+from .monitoring import MonitoredTorrent, MonitorSnapshot, TorrentChangeEvent
 from .notifications import Notification
 from .requests import Request, RequestResult
 from .site import Announcement, Announcements, BlogPost, Top10Category
@@ -56,6 +57,9 @@ __all__ = [
     "Announcements",
     "Collage",
     "Message",
+    "MonitoredTorrent",
+    "MonitorSnapshot",
+    "TorrentChangeEvent",
     "Notification",
     "Request",
     "RequestResult",

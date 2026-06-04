@@ -140,3 +140,11 @@ The client SHALL expose site-wide read endpoints via `client.site`.
 - **WHEN** `client.site.announcements()` is awaited
 - **THEN** an `Announcements` model (site news plus blog posts) is returned
 
+### Requirement: Monitor factory
+The client SHALL expose a factory for constructing a torrent monitor bound to
+that client, so callers obtain a monitor without wiring the transport manually.
+
+#### Scenario: Monitor created from client
+- **WHEN** the monitor factory on a client instance is called
+- **THEN** a monitor is returned that issues its requests through that client
+

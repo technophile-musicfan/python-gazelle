@@ -57,6 +57,19 @@ async def capture(
                 )
                 print(f"[{tracker}] Captured torrentgroup {group_id}")
 
+        # Capture the current user's uploaded + snatched lists (action=user_torrents).
+        # `index` above carries the user id under "id".
+        user_id = index.get("id")
+        if user_id:
+            for kind in ("uploaded", "snatched"):
+                user_torrents = await t.request(
+                    "user_torrents", id=user_id, type=kind, limit=50, offset=0
+                )
+                (out / f"user_torrents_{kind}.json").write_text(
+                    json.dumps({"status": "success", "response": user_torrents}, indent=2)
+                )
+                print(f"[{tracker}] Captured user_torrents ({kind})")
+
         # Derive an artist fixture from the torrent's group musicInfo.
         artist_id = None
         if torrent:

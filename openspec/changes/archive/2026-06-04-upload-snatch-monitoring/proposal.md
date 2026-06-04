@@ -7,8 +7,8 @@ monitoring for the current user's uploaded and snatched torrents.
 
 ## What Changes
 
-- Add a `user_torrents` endpoint to the client so a user's uploaded and snatched
-  torrent lists can be fetched (currently no endpoint lists a user's torrents).
+- Build on the `user_torrents` endpoint (`UserResource.torrents(user_id, type)`,
+  already shipped) to fetch a user's uploaded and snatched torrent lists.
 - Add a `TorrentMonitor` that auto-discovers the watch list (uploaded + snatched)
   and exposes a stateless `await monitor.poll()` returning typed change events
   (`deleted`, `trumped`, `removed`) since the previous snapshot.
@@ -31,18 +31,18 @@ No breaking changes — all additions.
 
 ### Modified Capabilities
 
-- `gazelle-client`: the user resource gains a method to list the current user's
-  torrents by type (uploaded, snatched, …) via the `user_torrents` action, and
-  the client exposes a factory for constructing a monitor.
+- `gazelle-client`: the client exposes a factory for constructing a monitor. (The
+  user-torrent listing method via the `user_torrents` action already shipped and
+  is documented in the main spec — it is no longer part of this change.)
 
 ## Impact
 
 - **New code:** `src/pygazelle/monitoring.py` (`TorrentMonitor`), models
   `UserTorrent` and `TorrentChangeEvent` under `src/pygazelle/models/`.
-- **Modified code:** `resources/user.py` (new `torrents` method),
-  `client.py` (`monitor()` factory), `sync.py` (sync monitor wrapper),
-  `__init__.py` (public exports), `devtools/capture_fixtures.py`
-  (capture `user_torrents` fixtures).
+- **Modified code:** `client.py` (`monitor()` factory), `sync.py` (sync monitor
+  wrapper), `__init__.py` (public exports), `devtools/capture_fixtures.py`
+  (capture `user_torrents` fixtures). (`resources/user.py` already has the
+  `torrents` method — no change needed there.)
 - **Dependencies:** none new — built on the existing transport, rate limiter,
   and Pydantic models.
 - **Assumptions to verify during implementation:** the `user_torrents` action's

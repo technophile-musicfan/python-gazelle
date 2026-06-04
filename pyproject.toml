@@ -144,6 +144,9 @@ ignore = [
 # https://marketplace.visualstudio.com/items?itemName=detachhead.basedpyright
 # https://docs.basedpyright.com/latest/configuration/config-files/#sample-pyprojecttoml-file
 include = ["src", "tests", "devtools"]
+# Resolve repo-root-relative test imports (e.g. `from tests.support import ...`),
+# mirroring pytest's `pythonpath = ["."]`.
+extraPaths = ["."]
 # By default BasedPyright is very strict, so you almost certainly want to disable
 # some of the rules.
 # First, these turn off warnings about (yes) how you ignore warnings:
@@ -158,6 +161,11 @@ reportAny = false
 reportExplicitAny = false
 reportImplicitStringConcatenation = false
 reportUnreachable = false
+# A Client.monitor() factory returns a TorrentMonitor that holds a typed
+# GazelleClient back-reference — an inherent (TYPE_CHECKING-only, runtime-safe)
+# import cycle that basedpyright flags wherever the import is placed. Disabled
+# rather than papering it with a Protocol indirection alien to this codebase.
+reportImportCycles = false
 # reportPrivateImportUsage = false
 # reportPrivateLocalImportUsage = false
 # reportMissingImports = false
@@ -208,6 +216,7 @@ testpaths = [
     "src",
     "tests",
 ]
+pythonpath = ["."]
 norecursedirs = []
 filterwarnings = []
 asyncio_mode = "auto"

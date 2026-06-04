@@ -2,6 +2,10 @@ from __future__ import annotations
 
 from typing import Unpack
 
+# Runtime-safe: monitoring.py imports GazelleClient only under TYPE_CHECKING, so
+# this top-level import does not form a runtime cycle. (basedpyright's static
+# reportImportCycles is disabled for this pair — see pyproject.toml.)
+from .monitoring import TorrentMonitor
 from .resources.artists import ArtistResource
 from .resources.bookmarks import BookmarkResource
 from .resources.collages import CollageResource
@@ -11,7 +15,7 @@ from .resources.requests import RequestResource
 from .resources.site import SiteResource
 from .resources.subscriptions import SubscriptionResource
 from .resources.torrents import TorrentResource
-from .resources.user import UserResource
+from .resources.user import UserResource, UserTorrentType
 from .transport import GazelleTransport, TransportOptions
 
 ORPHEUS_BASE_URL = "https://orpheus.network"
@@ -92,6 +96,15 @@ class GazelleClient:
         if self._site is None:
             self._site = SiteResource(self._transport)
         return self._site
+
+    def monitor(
+        self,
+        *,
+        sources: tuple[UserTorrentType, ...] = ("uploaded", "snatched"),
+        page_size: int = 50,
+    ) -> TorrentMonitor:
+        """Construct a TorrentMonitor bound to this client."""
+        return TorrentMonitor(self, sources=sources, page_size=page_size)
 
     async def aclose(self) -> None:
         await self._transport.aclose()
