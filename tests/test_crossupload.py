@@ -1,6 +1,24 @@
 from __future__ import annotations
 
-from pygazelle.crossupload import DuplicateMatch, UploadDraft, UploadResult
+import pytest
+
+from pygazelle.client import GazelleClient
+from pygazelle.crossupload import (
+    DuplicateMatch,
+    TrackerKind,
+    UploadDraft,
+    UploadResult,
+    duplicate_check,
+    map_metadata,
+    submit_upload,
+)
+from pygazelle.models.torrents import Torrent
+from tests.support import (
+    UploadTransport,
+    make_browse_group,
+    make_browse_row,
+    make_torrent_payload,
+)
 
 
 def test_dataclasses_hold_fields():
@@ -23,20 +41,11 @@ def test_dataclasses_hold_fields():
     assert res.torrent_id == 99
 
 
-from pygazelle.client import GazelleClient
-from tests.support import UploadTransport
-
-
 async def test_announce_url_built_from_passkey_and_host():
     transport = UploadTransport(passkey="abc123", announce_host="flacsfor.me")
     client = GazelleClient(transport)  # pyright: ignore[reportArgumentType]
     url = await client.user.announce_url()
     assert url == "https://flacsfor.me/abc123/announce"
-
-
-from pygazelle.crossupload import map_metadata
-from pygazelle.models.torrents import Torrent
-from tests.support import make_torrent_payload
 
 
 def _src(release_type: int = 1, tags: tuple[str, ...] = ("rock",)) -> Torrent:
@@ -79,3 +88,140 @@ def test_map_metadata_tags_warned():
     mapped = map_metadata(_src(tags=("rock", "obscure.subgenre")), "redacted")
     assert mapped.fields.get("tags")
     assert any("tag" in w.lower() for w in mapped.warnings)
+
+
+def _client(t):
+    return GazelleClient(t)  # pyright: ignore[reportArgumentType]
+
+
+async def test_duplicate_check_exact():
+    files = [("01.flac", 30)]
+    source = _src()
+    target = UploadTransport(
+        browse_results=[
+            make_browse_group(
+                group_id=9,
+                group_name="Album",
+                artist="Band",
+                year=2020,
+                torrents=[make_browse_row(torrent_id=20, size=30, file_count=1)],
+            )
+        ],
+        torrents={
+            20: make_torrent_payload(
+                torrent_id=20,
+                group_id=9,
+                group_name="Album",
+                year=2020,
+                artist="Band",
+                file_path="Album [FLAC]",
+                files=files,
+            )
+        },
+    )
+    dupes = await duplicate_check(source, _client(target))
+    assert [(d.torrent_id, d.kind) for d in dupes] == [(20, "exact")]
+
+
+async def test_duplicate_check_possible():
+    source = _src()
+    target = UploadTransport(
+        browse_results=[
+            make_browse_group(
+                group_id=9,
+                group_name="Album",
+                artist="Band",
+                year=2020,
+                torrents=[make_browse_row(torrent_id=20, size=30, file_count=1)],
+            )
+        ],
+        torrents={
+            20: make_torrent_payload(
+                torrent_id=20,
+                group_id=9,
+                group_name="Album",
+                year=2020,
+                artist="Band",
+                file_path="DIFFERENT",
+                files=[("01.flac", 30)],
+            )
+        },
+    )
+    dupes = await duplicate_check(source, _client(target))
+    assert [(d.torrent_id, d.kind) for d in dupes] == [(20, "possible")]
+
+
+async def test_duplicate_check_none():
+    assert await duplicate_check(_src(), _client(UploadTransport(browse_results=[]))) == []
+
+
+def _complete_draft(
+    target: TrackerKind = "redacted", duplicates: list[DuplicateMatch] | None = None
+) -> UploadDraft:
+    return UploadDraft(
+        form={
+            "artists": ["Band"],
+            "title": "Album",
+            "year": 2020,
+            "release_type": 1,
+            "format": "FLAC",
+            "bitrate": "Lossless",
+            "media": "CD",
+        },
+        unmapped=[],
+        warnings=[],
+        duplicates=duplicates or [],
+        torrent_file=b"tbytes",
+        source_torrent_id=1,
+        target_tracker=target,
+    )
+
+
+async def test_submit_refuses_missing_required_field():
+    draft = _complete_draft()
+    del draft.form["title"]
+    target = UploadTransport(upload_response={"torrentid": 99, "groupid": 42})
+    with pytest.raises(ValueError) as ei:
+        await submit_upload(_client(target), draft)
+    assert "title" in str(ei.value)
+    assert target.writes == []
+
+
+async def test_submit_refuses_on_exact_duplicate():
+    draft = _complete_draft(
+        duplicates=[DuplicateMatch(torrent_id=20, group_id=9, kind="exact", name="x")]
+    )
+    target = UploadTransport(upload_response={"torrentid": 99, "groupid": 42})
+    with pytest.raises(ValueError):
+        await submit_upload(_client(target), draft)
+    assert target.writes == []
+
+
+async def test_submit_allows_exact_duplicate_with_override():
+    draft = _complete_draft(
+        duplicates=[DuplicateMatch(torrent_id=20, group_id=9, kind="exact", name="x")]
+    )
+    target = UploadTransport(upload_response={"torrentid": 99, "groupid": 42})
+    result = await submit_upload(_client(target), draft, allow_duplicate=True)
+    assert isinstance(result, UploadResult)
+    assert len(target.writes) == 1
+
+
+async def test_submit_possible_duplicate_does_not_block():
+    draft = _complete_draft(
+        duplicates=[DuplicateMatch(torrent_id=20, group_id=9, kind="possible", name="x")]
+    )
+    target = UploadTransport(upload_response={"torrentid": 99, "groupid": 42})
+    result = await submit_upload(_client(target), draft)
+    assert result.torrent_id == 99
+
+
+async def test_submit_happy_path_posts_multipart():
+    draft = _complete_draft()
+    target = UploadTransport(upload_response={"torrentid": 99, "groupid": 42})
+    result = await submit_upload(_client(target), draft)
+    assert result.torrent_id == 99 and result.group_id == 42
+    write = target.writes[0]
+    assert write["action"] == "upload"
+    assert write["files"] is not None
+    assert write["data"]["title"] == "Album"

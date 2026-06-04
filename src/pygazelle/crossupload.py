@@ -5,20 +5,10 @@ from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any, Literal
 
 if TYPE_CHECKING:
-    from .client import (
-        GazelleClient,  # noqa: F401  # used by later cross-upload functions  # pyright: ignore[reportUnusedImport]
-    )
+    from .client import GazelleClient
 
-from .crossseed import (
-    find_candidates,  # noqa: F401  # used by later cross-upload functions  # pyright: ignore[reportUnusedImport]
-    verify_match,  # noqa: F401  # used by later cross-upload functions  # pyright: ignore[reportUnusedImport]
-)
-from .errors import (
-    GazelleError,  # noqa: F401  # used by later cross-upload functions  # pyright: ignore[reportUnusedImport]
-)
-from .models.torrents import (
-    Torrent,  # noqa: F401  # used by later cross-upload functions  # pyright: ignore[reportUnusedImport]
-)
+from .crossseed import find_candidates, verify_match
+from .models.torrents import Torrent
 
 logger = logging.getLogger("pygazelle.crossupload")
 
@@ -133,3 +123,53 @@ def map_metadata(source: Torrent, target: TrackerKind) -> MappedForm:
     out.fields["bitrate"] = source.encoding  # Gazelle 'bitrate' carries the encoding value
     out.fields["media"] = source.media
     return out
+
+
+async def duplicate_check(source: Torrent, target_client: GazelleClient) -> list[DuplicateMatch]:
+    """Search the target for releases matching the source; classify each as an
+    exact duplicate (file-list match) or a possible duplicate (same group/metadata)."""
+    candidates = await find_candidates(source, target_client)
+    matches: list[DuplicateMatch] = []
+    for cand in candidates:
+        kind: DuplicateKind = "exact" if verify_match(source, cand) else "possible"
+        group_id = cand.group.id if cand.group else 0
+        name = cand.group.name if cand.group else ""
+        matches.append(DuplicateMatch(torrent_id=cand.id, group_id=group_id, kind=kind, name=name))
+    return matches
+
+
+def _missing_required(draft: UploadDraft) -> list[str]:
+    required = REQUIRED_FIELDS.get(draft.target_tracker, ())
+    return [f for f in required if f not in draft.form or draft.form[f] in (None, "", [])]
+
+
+async def submit_upload(
+    target_client: GazelleClient,
+    draft: UploadDraft,
+    *,
+    allow_duplicate: bool = False,
+) -> UploadResult:
+    """The live write: validate the draft, gate on exact duplicates, then POST
+    action=upload. Refuses (no write) on missing required fields or an unallowed
+    exact duplicate."""
+    missing = _missing_required(draft)
+    if missing:
+        raise ValueError(f"cannot submit: missing required field(s): {', '.join(missing)}")
+    if not allow_duplicate and any(d.kind == "exact" for d in draft.duplicates):
+        raise ValueError(
+            "an exact duplicate exists on the target; pass allow_duplicate=True to override"
+        )
+    files = [
+        ("file_input", ("upload.torrent", draft.torrent_file))
+    ]  # VERIFY upload file field name
+    data = await target_client._transport.request_write(  # pyright: ignore[reportPrivateUsage]
+        "upload", data=dict(draft.form), files=files
+    )
+    # VERIFY response keys for the new torrent/group id.
+    torrent_id = int(data.get("torrentid") or data.get("torrentId") or 0)
+    group_id = int(data.get("groupid") or data.get("groupId") or 0)
+    return UploadResult(
+        torrent_id=torrent_id,
+        group_id=group_id,
+        url=f"torrents.php?id={group_id}&torrentid={torrent_id}",
+    )
