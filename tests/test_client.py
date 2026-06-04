@@ -31,6 +31,8 @@ from pygazelle.resources.user import UserResource
 
 class StubTransport:
     # Values are usually dicts, but some actions (e.g. similar_artists) return a list.
+    announce_host: str | None = None
+
     def __init__(self, responses: dict[str, Any]) -> None:
         self._responses = responses
 

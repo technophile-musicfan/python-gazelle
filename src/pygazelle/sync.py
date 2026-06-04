@@ -8,6 +8,7 @@ from typing import TYPE_CHECKING, Any, TypeVar, Unpack, final
 
 if TYPE_CHECKING:
     from .crossseed import CrossSeedResult
+    from .crossupload import UploadDraft, UploadResult
 
 from .client import GazelleClient, OrpheusClient, RedactedClient
 from .resources.user import UserTorrentType
@@ -139,6 +140,38 @@ def cross_seed_sync(
             target_client._async,  # pyright: ignore[reportPrivateUsage]
             max_deep_checks=DEFAULT_MAX_DEEP_CHECKS if max_deep_checks is None else max_deep_checks,
         )
+    )
+
+
+def prepare_upload_sync(
+    source_client: GazelleSyncClient,
+    source_torrent_id: int,
+    target_client: GazelleSyncClient,
+    *,
+    torrent_file: bytes,
+) -> UploadDraft:
+    from .crossupload import prepare_upload
+
+    return source_client._bg.run(  # pyright: ignore[reportPrivateUsage]
+        prepare_upload(
+            source_client._async,  # pyright: ignore[reportPrivateUsage]
+            source_torrent_id,
+            target_client._async,  # pyright: ignore[reportPrivateUsage]
+            torrent_file=torrent_file,
+        )
+    )
+
+
+def submit_upload_sync(
+    target_client: GazelleSyncClient,
+    draft: UploadDraft,
+    *,
+    allow_duplicate: bool = False,
+) -> UploadResult:
+    from .crossupload import submit_upload
+
+    return target_client._bg.run(  # pyright: ignore[reportPrivateUsage]
+        submit_upload(target_client._async, draft, allow_duplicate=allow_duplicate)  # pyright: ignore[reportPrivateUsage]
     )
 
 

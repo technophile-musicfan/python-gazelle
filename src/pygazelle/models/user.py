@@ -20,6 +20,7 @@ class UserStats(GazelleModel):
 class User(GazelleModel):
     id: int
     username: str
+    passkey: str | None = None
     userstats: UserStats | None = None
 
 

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import Literal
 
+from ..errors import GazelleError
 from ..models.user import User, UserProfile, UserSearchResult, UserTorrent
 from .base import BaseResource
 
@@ -41,3 +42,11 @@ class UserResource(BaseResource):
         data = await self._transport.request("user_torrents", **params)
         # The torrents list is keyed under the requested type (e.g. "seeding": [...]).
         return self._parse_list(data.get(type), UserTorrent)
+
+    async def announce_url(self) -> str:
+        """The current user's announce URL on this tracker (passkey + announce host)."""
+        me = await self.me()
+        host = self._transport.announce_host
+        if not me.passkey or not host:
+            raise GazelleError("announce URL unavailable: missing passkey or announce host")
+        return f"https://{host}/{me.passkey}/announce"

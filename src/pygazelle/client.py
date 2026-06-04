@@ -22,6 +22,10 @@ ORPHEUS_BASE_URL = "https://orpheus.network"
 # RED migrated from redacted.ch to redacted.sh; the old domain returns HTTP 410.
 REDACTED_BASE_URL = "https://redacted.sh"
 
+# VERIFY announce hosts against each tracker (NOT the API host).
+ORPHEUS_ANNOUNCE_HOST = "home.opsfet.ch"
+REDACTED_ANNOUNCE_HOST = "flacsfor.me"
+
 
 class GazelleClient:
     def __init__(self, transport: GazelleTransport) -> None:
@@ -125,6 +129,7 @@ class OrpheusClient(GazelleClient):
         api_key: str | None = None,
         **kwargs: Unpack[TransportOptions],
     ) -> None:
+        kwargs.setdefault("announce_host", ORPHEUS_ANNOUNCE_HOST)
         super().__init__(
             GazelleTransport(
                 ORPHEUS_BASE_URL, username=username, password=password, api_key=api_key, **kwargs
@@ -143,6 +148,7 @@ class RedactedClient(GazelleClient):
     ) -> None:
         # RED expects the bare API key in the Authorization header (no "token " prefix).
         kwargs.setdefault("api_key_prefix", "")
+        kwargs.setdefault("announce_host", REDACTED_ANNOUNCE_HOST)
         super().__init__(
             GazelleTransport(
                 REDACTED_BASE_URL, username=username, password=password, api_key=api_key, **kwargs
