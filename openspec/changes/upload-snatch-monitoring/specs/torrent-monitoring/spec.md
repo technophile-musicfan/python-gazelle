@@ -36,7 +36,8 @@ timer, or callbacks; the caller controls cadence.
 
 ### Requirement: Deletion, trump, and removal classification
 Each change event SHALL classify a removed torrent as `deleted`, `trumped`, or
-`removed` (unknown), and carry the torrent id, source, group id, and group name.
+`removed` (unknown), and carry the torrent id, source, group id, and release name
+(the `UserTorrent.name` field; the API exposes no separate group-name field).
 A `trumped` event SHALL include the replacement torrent id.
 
 #### Scenario: Trumped torrent

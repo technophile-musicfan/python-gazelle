@@ -38,13 +38,18 @@ no hidden threads, no inversion of control) and composes with any scheduler the
 caller already has. The original epic wording ("callback/event model") is
 superseded — the event *model* remains, the callback *delivery* is dropped.
 
-### Auto-discovered watch list via a new `user_torrents` endpoint
+### Auto-discovered watch list via the `user_torrents` endpoint
 The monitor resolves the current user id once via `user.me()`, then fetches the
-uploaded and snatched lists through a new `UserResource.torrents(type, …)`
-method wrapping the Gazelle `user_torrents` action. Chosen over requiring the
-caller to supply IDs so monitoring is batteries-included and always current. The
-endpoint is a standalone, independently useful addition (not buried inside the
-monitor).
+uploaded and snatched lists through `UserResource.torrents(user_id, type, …)`,
+which wraps the Gazelle `user_torrents` action. Chosen over requiring the caller
+to supply IDs so monitoring is batteries-included and always current.
+
+> Update: this endpoint has already shipped (commit `0f39d3b`) as a standalone,
+> independently useful addition — it is no longer built by this change. Note the
+> signature takes an explicit `user_id`; the monitor obtains it from `me().id` and
+> passes it in (the endpoint does not auto-resolve the current user). The
+> `UserTorrent` model exposes `group_id`, `torrent_id`, `name` (release name),
+> `torrent_size`, `artist_id`, `artist_name`.
 
 ### Snapshot-diff detection (vs. per-torrent polling)
 Each `poll()` re-fetches the uploaded/snatched lists and diffs torrent IDs
@@ -66,18 +71,20 @@ A mid-poll failure leaves the prior snapshot intact, so the next `poll()` retrie
 cleanly instead of silently dropping events.
 
 ### In-memory snapshot with opt-in serialization
-The monitor holds the last snapshot in memory; the first `poll()` establishes a
-baseline and returns `[]`. `dump_state()` / `load_state()` expose a
-json-serializable snapshot so callers can persist across restarts. Rejected
+The monitor holds the last snapshot in memory (a per-source map of torrent id →
+group id + release name); the first `poll()` establishes a baseline and returns
+`[]`. `dump_state()` / `load_state()` expose a json-serializable snapshot so
+callers can persist across restarts. Rejected
 fully-functional `diff(old, new)` free functions (awkward because trump
 classification needs the client) and automatic disk persistence (couples the
 library to a storage location).
 
 ## Risks / Trade-offs
 
-- **`user_torrents` shape unknown / divergent across trackers** → Capture
-  Orpheus and Redacted fixtures first (extend `capture_fixtures.py`); model
-  divergent fields as Optional/unions per the existing convention.
+- **`user_torrents` shape divergent across trackers** → The `UserTorrent` model
+  already ships with the core fields. Still capture Orpheus and Redacted fixtures
+  (extend `capture_fixtures.py`) to confirm the shape and add any divergent fields
+  as Optional/unions per the existing convention.
 - **Deleted torrents may linger in the list, breaking diff-detection** →
   **Verify first.** The plan leads with a spike to confirm whether deleted
   torrents drop off `user_torrents`. If they do, ship pure diff. If they linger,
@@ -98,7 +105,8 @@ depends on them.
 
 ## Open Questions
 
-- Exact `user_torrents` action parameters and pagination semantics per tracker —
-  resolved during the fixture-capture spike.
+- Pagination semantics of `user_torrents` per tracker (the shipped endpoint
+  accepts `limit`/`offset`; whether the monitor must loop to exhaust large lists
+  is confirmed during the fixture-capture spike).
 - Whether `removed` (unknown) should remain a distinct event kind or be merged —
   pending user confirmation during spec review; design keeps it distinct.

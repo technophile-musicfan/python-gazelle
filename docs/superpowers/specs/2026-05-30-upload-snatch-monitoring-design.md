@@ -4,6 +4,19 @@
 - **Epic:** python-gazelle-p53 ([Epic] Upload Monitoring — to be renamed/expanded to cover snatches)
 - **Status:** Design approved, pending spec review
 
+> **Correction (2026-06-04):** Work that landed after this doc was written has
+> overtaken three points below. The OpenSpec delta is the source of truth where
+> they differ:
+> 1. **`UserTorrent` has no `group_name`.** The shipped model exposes `name`
+>    (release name), `group_id`, `torrent_id`, `torrent_size`, `artist_id`,
+>    `artist_name`. Read `group_name` as `name` throughout this doc.
+> 2. **The endpoint takes an explicit `user_id`.** The shipped signature is
+>    `UserResource.torrents(user_id, type, limit, offset)`, not `torrents(type)`.
+>    The monitor resolves the id via `me().id` and passes it in.
+> 3. **The `user_torrents` endpoint already shipped** (commit `0f39d3b`), with
+>    unit + model tests. It is no longer new work — the "Beads impact" section's
+>    new-endpoint sub-feature is moot; only the monitor + sync wrapper remain.
+
 ## Summary
 
 Watch the current user's **uploaded** and **snatched** torrents for **deletion**
