@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import pytest
 
+import pygazelle
 from pygazelle.client import GazelleClient
 from pygazelle.crossupload import (
     DuplicateMatch,
@@ -10,8 +11,10 @@ from pygazelle.crossupload import (
     UploadResult,
     duplicate_check,
     map_metadata,
+    prepare_upload,
     submit_upload,
 )
+from pygazelle.errors import GazelleNotFoundError
 from pygazelle.models.torrents import Torrent
 from tests.support import (
     UploadTransport,
@@ -225,3 +228,48 @@ async def test_submit_happy_path_posts_multipart():
     assert write["action"] == "upload"
     assert write["files"] is not None
     assert write["data"]["title"] == "Album"
+
+
+async def test_prepare_upload_assembles_draft_no_writes():
+    files = [("01.flac", 30)]
+    src_payload = make_torrent_payload(
+        torrent_id=1,
+        group_id=5,
+        group_name="Album",
+        year=2020,
+        artist="Band",
+        file_path="Album [FLAC]",
+        files=files,
+    )
+    src_payload["group"]["releaseType"] = 1
+    source_t = UploadTransport(torrents={1: src_payload})
+    target_t = UploadTransport(browse_results=[])  # no dupes
+    draft = await prepare_upload(_client(source_t), 1, _client(target_t), torrent_file=b"tbytes")
+    assert isinstance(draft, UploadDraft)
+    assert draft.torrent_file == b"tbytes"
+    assert draft.form["title"] == "Album"
+    assert draft.duplicates == []
+    assert target_t.writes == []  # READ-ONLY: prepare must not write
+
+
+async def test_prepare_upload_source_not_found_raises():
+    source_t = UploadTransport(torrents={})
+    target_t = UploadTransport()
+    with pytest.raises(GazelleNotFoundError):
+        await prepare_upload(_client(source_t), 1, _client(target_t), torrent_file=b"x")
+
+
+def test_public_exports():
+    for name in (
+        "prepare_upload",
+        "submit_upload",
+        "map_metadata",
+        "duplicate_check",
+        "UploadDraft",
+        "UploadResult",
+        "DuplicateMatch",
+        "prepare_upload_sync",
+        "submit_upload_sync",
+    ):
+        assert hasattr(pygazelle, name), name
+        assert name in pygazelle.__all__, name

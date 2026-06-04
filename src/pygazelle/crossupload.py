@@ -8,6 +8,7 @@ if TYPE_CHECKING:
     from .client import GazelleClient
 
 from .crossseed import find_candidates, verify_match
+from .errors import GazelleError
 from .models.torrents import Torrent
 
 logger = logging.getLogger("pygazelle.crossupload")
@@ -172,4 +173,39 @@ async def submit_upload(
         torrent_id=torrent_id,
         group_id=group_id,
         url=f"torrents.php?id={group_id}&torrentid={torrent_id}",
+    )
+
+
+def _tracker_kind(client: GazelleClient) -> TrackerKind:
+    # Derive from the announce host (set per tracker), avoiding an isinstance import cycle.
+    host = getattr(client._transport, "announce_host", None)  # pyright: ignore[reportPrivateUsage]
+    if host and "opsfet" in host:
+        return "orpheus"
+    return "redacted"
+
+
+async def prepare_upload(
+    source_client: GazelleClient,
+    source_torrent_id: int,
+    target_client: GazelleClient,
+    *,
+    torrent_file: bytes,
+) -> UploadDraft:
+    """Read-only: map metadata + detect duplicates + build an UploadDraft. No write."""
+    source = await source_client.torrents.get(source_torrent_id)
+    target = _tracker_kind(target_client)
+    mapped = map_metadata(source, target)
+    try:
+        duplicates = await duplicate_check(source, target_client)
+    except GazelleError as exc:
+        duplicates = []
+        mapped.warnings.append(f"duplicate check failed: {exc}")
+    return UploadDraft(
+        form=mapped.fields,
+        unmapped=mapped.unmapped,
+        warnings=mapped.warnings,
+        duplicates=duplicates,
+        torrent_file=torrent_file,
+        source_torrent_id=source_torrent_id,
+        target_tracker=target,
     )
