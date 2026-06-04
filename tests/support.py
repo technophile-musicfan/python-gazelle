@@ -214,7 +214,11 @@ class UploadTransport:
 
     async def request(self, action: str, **params: Any) -> Any:
         if action == "index":
-            return self._index or {"id": self._user_id, "username": "tester", "passkey": self._passkey}
+            return self._index or {
+                "id": self._user_id,
+                "username": "tester",
+                "passkey": self._passkey,
+            }
         if action == "torrent":
             from pygazelle.errors import GazelleNotFoundError
 
