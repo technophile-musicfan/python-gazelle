@@ -4,7 +4,10 @@ import asyncio
 import inspect
 import threading
 from collections.abc import Coroutine
-from typing import Any, TypeVar, Unpack, final
+from typing import TYPE_CHECKING, Any, TypeVar, Unpack, final
+
+if TYPE_CHECKING:
+    from .crossseed import CrossSeedResult
 
 from .client import GazelleClient, OrpheusClient, RedactedClient
 from .resources.user import UserTorrentType
@@ -115,6 +118,28 @@ class GazelleSyncClient:
     def close(self) -> None:
         self._bg.run(self._async.aclose())
         self._bg.stop()
+
+
+def cross_seed_sync(
+    source_client: GazelleSyncClient,
+    source_torrent_id: int,
+    target_client: GazelleSyncClient,
+    *,
+    max_deep_checks: int | None = None,
+) -> CrossSeedResult | None:
+    """Synchronous cross-seed: runs the async cross_seed on the source client's
+    background loop and returns the result (or None) directly, no await.
+    """
+    from .crossseed import DEFAULT_MAX_DEEP_CHECKS, cross_seed
+
+    return source_client._bg.run(  # pyright: ignore[reportPrivateUsage]
+        cross_seed(
+            source_client._async,  # pyright: ignore[reportPrivateUsage]
+            source_torrent_id,
+            target_client._async,  # pyright: ignore[reportPrivateUsage]
+            max_deep_checks=DEFAULT_MAX_DEEP_CHECKS if max_deep_checks is None else max_deep_checks,
+        )
+    )
 
 
 class OrpheusClientSync(GazelleSyncClient):
