@@ -16,6 +16,8 @@ class SupportsTransport(Protocol):
     are decoupled from the concrete transport implementation.
     """
 
+    announce_host: str | None
+
     async def request(self, action: str, **params: str | int) -> dict[str, Any]: ...
 
     async def request_write(
@@ -38,6 +40,7 @@ class TransportOptions(TypedDict, total=False):
     user_agent: str
     rate: float
     max_retries: int
+    announce_host: str | None
 
 
 @final
@@ -75,6 +78,7 @@ class GazelleTransport:
         user_agent: str = "python-gazelle",
         rate: float = 3.0,
         max_retries: int = 3,
+        announce_host: str | None = None,
         _http_client: httpx.AsyncClient | None = None,
     ) -> None:
         self._ajax_url = f"{base_url}/ajax.php"
@@ -83,6 +87,7 @@ class GazelleTransport:
         self._password = password
         self._api_key = api_key
         self._max_retries = max_retries
+        self.announce_host = announce_host
         self._auth_mode = "api_key" if api_key else "cookie" if username else None
         if self._auth_mode is None:
             raise ValueError("Either api_key or username+password must be provided")
