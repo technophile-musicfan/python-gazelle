@@ -183,3 +183,42 @@ def test_public_exports():
     assert pygazelle.TorrentChangeEvent is TorrentChangeEvent
     assert "TorrentMonitor" in pygazelle.__all__
     assert "TorrentChangeEvent" in pygazelle.__all__
+
+
+async def test_failed_classification_preserves_prior_snapshot():
+    # Atomicity also holds when the failure is a non-NotFound error raised during
+    # classification (get_group), not just during the list fetch.
+    transport = MonitorTransport(
+        pages={"uploaded": [[make_user_torrent_row(10, 5, "A")], []], "snatched": [[]]},
+    )
+    monitor = TorrentMonitor(_client(transport), page_size=1)
+    await monitor.poll()  # baseline {10}
+
+    # Torrent 10 disappears; its group lookup raises a transient API error.
+    transport._fail_action = ("torrentgroup", GazelleAPIError(status_code=500))
+    with pytest.raises(GazelleAPIError):
+        await monitor.poll()
+
+    # Recover: group 5 is now gone -> the pending change is still detected.
+    transport._fail_action = None
+    transport._missing = {5}
+    events = await monitor.poll()
+    assert [e.kind for e in events] == ["deleted"]
+
+
+async def test_pagination_exact_page_size_boundary():
+    # First page is exactly page_size; a second (empty) page terminates the loop.
+    # Both torrents must be captured, with no double-counting.
+    transport = MonitorTransport(
+        pages={
+            "uploaded": [
+                [make_user_torrent_row(10, 5, "A"), make_user_torrent_row(20, 6, "B")],
+                [],
+            ],
+            "snatched": [[]],
+        }
+    )
+    monitor = TorrentMonitor(_client(transport), page_size=2)
+    await monitor.poll()
+    assert monitor._snapshot is not None
+    assert set(monitor._snapshot.sources["uploaded"]) == {10, 20}

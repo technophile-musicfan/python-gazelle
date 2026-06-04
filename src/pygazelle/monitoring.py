@@ -93,7 +93,9 @@ class TorrentMonitor:
             offset += self._page_size
         return entries
 
-    async def _classify(self, source: str, entry: MonitoredTorrent) -> TorrentChangeEvent:
+    async def _classify(
+        self, source: UserTorrentType, entry: MonitoredTorrent
+    ) -> TorrentChangeEvent:
         try:
             group = await self._client.torrents.get_group(entry.group_id)
         except GazelleNotFoundError:
@@ -103,9 +105,10 @@ class TorrentMonitor:
         if entry.torrent_id in group_ids:
             # The list says it's gone but the group still lists it — ambiguous.
             return self._event("removed", source, entry, None)
-        others = [tid for tid in group_ids if tid != entry.torrent_id]
-        if others:
-            return self._event("trumped", source, entry, others[0])
+        # Past the check above, our torrent is absent from the group. Any other
+        # torrent now standing in its place is treated as the replacement (trump).
+        if group_ids:
+            return self._event("trumped", source, entry, group_ids[0])
         return self._event("deleted", source, entry, None)
 
     @staticmethod
