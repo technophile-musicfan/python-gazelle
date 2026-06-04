@@ -1,4 +1,9 @@
+import json
+
+import pytest
+
 from pygazelle.client import GazelleClient
+from pygazelle.errors import GazelleAPIError
 from pygazelle.monitoring import TorrentMonitor
 from tests.support import MonitorTransport, make_user_torrent_row
 
@@ -94,11 +99,6 @@ async def test_classification_lookups_bounded_by_removals():
     assert transport.group_lookups == [5]
 
 
-import pytest
-
-from pygazelle.errors import GazelleAPIError
-
-
 async def test_failed_poll_preserves_prior_snapshot():
     transport = MonitorTransport(
         pages={"uploaded": [[make_user_torrent_row(10, 5, "A")]], "snatched": [[]]},
@@ -131,3 +131,26 @@ async def test_source_restriction_watches_only_requested():
     assert monitor._snapshot is not None
     assert set(monitor._snapshot.sources) == {"snatched"}
     assert 20 in monitor._snapshot.sources["snatched"]
+
+
+async def test_dump_and_load_state_round_trip():
+    transport = MonitorTransport(
+        pages={"uploaded": [[make_user_torrent_row(10, 5, "A")], []], "snatched": [[]]},
+        missing_groups=(5,),
+    )
+    source = TorrentMonitor(_client(transport), page_size=1)
+    await source.poll()  # baseline with torrent 10
+
+    state = source.dump_state()
+    assert json.loads(json.dumps(state)) == state  # genuinely json-serializable
+
+    # Restore into a fresh monitor; it treats the restored snapshot as baseline.
+    restored = TorrentMonitor(_client(transport), page_size=1)
+    restored.load_state(state)
+    events = await restored.poll()  # torrent 10 now gone, group 5 missing
+    assert [e.kind for e in events] == ["deleted"]
+
+
+async def test_dump_state_before_first_poll_is_none():
+    transport = MonitorTransport(pages={"uploaded": [[]], "snatched": [[]]})
+    assert TorrentMonitor(_client(transport)).dump_state() is None
