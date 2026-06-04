@@ -188,6 +188,63 @@ def make_browse_group(
     }
 
 
+class UploadTransport:
+    """Fake transport for cross-upload tests. request_write records the upload
+    call (self.writes) and returns upload_response; no real network."""
+
+    def __init__(
+        self,
+        *,
+        passkey: str | None = None,
+        announce_host: str | None = None,
+        index: dict[str, Any] | None = None,
+        torrents: dict[int, dict[str, Any]] | None = None,
+        browse_results: list[dict[str, Any]] | None = None,
+        upload_response: dict[str, Any] | None = None,
+        user_id: int = 1,
+    ) -> None:
+        self.announce_host = announce_host
+        self._passkey = passkey
+        self._index = index
+        self._torrents = torrents or {}
+        self._browse_results = browse_results or []
+        self._upload_response = upload_response or {}
+        self._user_id = user_id
+        self.writes: list[dict[str, Any]] = []
+
+    async def request(self, action: str, **params: Any) -> Any:
+        if action == "index":
+            return self._index or {"id": self._user_id, "username": "tester", "passkey": self._passkey}
+        if action == "torrent":
+            from pygazelle.errors import GazelleNotFoundError
+
+            tid = params["id"]
+            if tid not in self._torrents:
+                raise GazelleNotFoundError(f"torrent {tid} not found")
+            return self._torrents[tid]
+        if action == "browse":
+            return {"results": self._browse_results}
+        raise AssertionError(f"unexpected read action: {action}")
+
+    async def request_write(
+        self,
+        action: str,
+        *,
+        data: dict[str, Any] | None = None,
+        files: Any | None = None,
+        params: dict[str, Any] | None = None,
+        include_auth_key: bool = True,
+    ) -> Any:
+        self.writes.append({"action": action, "data": data, "files": files, "params": params})
+        return self._upload_response
+
+    async def download(self, torrent_id: int) -> bytes:  # pragma: no cover - unused here
+        return b""
+
+    async def aclose(self) -> None:
+        pass
+
+
 class CrossSeedTransport:
     """Fake transport for one side (source or target) of a cross-seed test.
 
