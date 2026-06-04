@@ -1,22 +1,31 @@
 ## 1. Verification spike & fixtures
 
 - [ ] 1.1 Extend `devtools/capture_fixtures.py` to capture the `user_torrents` action (uploaded + snatched) for Orpheus and Redacted into `tests/fixtures/{orpheus,redacted}/user_torrents_{uploaded,snatched}.json`
-- [ ] 1.2 Capture the fixtures locally and record the response shape per tracker (field names, pagination, divergences)
-- [ ] 1.3 Verify assumption B: determine whether deleted/trumped torrents drop off the `user_torrents` list. Document the finding in the change. If they linger, mark task 4.5 (targeted-recheck fallback) as required; if they drop off, mark it as not needed.
+- [ ] 1.2 Capture the fixtures locally and record the response shape per tracker (field names, pagination, divergences). Reconcile against the already-shipped `UserTorrent` model (`group_id`, `torrent_id`, `name`, `torrent_size`, `artist_id`, `artist_name`) — add any divergent fields as Optional per the convention.
+- [ ] 1.3 Verify assumption B: determine whether deleted/trumped torrents drop off the `user_torrents` list. Document the finding in the change. If they linger, mark task 4.5 (targeted-recheck fallback) as required; if they drop off, mark it as not needed. — STATUS (2026-06-04): spike NOT run — no tracker credentials in this workspace. Assumption B unverified; defaulting to pure snapshot-diff and marking the targeted-recheck fallback (task 4.5 / issue python-gazelle-2xv) NOT NEEDED until fixtures can be captured.
 
-## 2. `user_torrents` endpoint + model
+## 2. `user_torrents` endpoint + model — ALREADY SHIPPED (verify only)
 
-- [ ] 2.1 Write failing model test: `UserTorrent` parses the Orpheus and Redacted `user_torrents` fixtures (id, group id, group name at minimum)
-- [ ] 2.2 Add `UserTorrent` model in `src/pygazelle/models/user.py`, making divergent fields Optional/union per the tracker-divergence convention; make the model test pass
-- [ ] 2.3 Write failing unit test (mock transport): `UserResource.torrents(type=...)` issues the `user_torrents` action and returns `list[UserTorrent]`, including pagination across multiple pages
-- [ ] 2.4 Implement `UserResource.torrents(type, limit, offset)` with pagination; make the test pass
-- [ ] 2.5 Export `UserTorrent` from `pygazelle.models` (and `pygazelle` if models are re-exported there)
+> The `user_torrents` endpoint and `UserTorrent` model landed after this change
+> was drafted (commit `0f39d3b`), with unit tests in `tests/test_client.py` and a
+> model test in `tests/models/test_user.py`. The signature is
+> `UserResource.torrents(user_id, type, limit, offset)` — it takes an explicit
+> `user_id` (the monitor resolves it via `me()`), not an auto-resolved current user.
+> The model exposes `group_id`, `torrent_id`, `name` (release name — there is no
+> separate `group_name`), `torrent_size`, `artist_id`, `artist_name`.
+
+- [x] 2.1 ~~Write failing model test~~ — exists (`tests/models/test_user.py`)
+- [x] 2.2 ~~Add `UserTorrent` model~~ — exists (`src/pygazelle/models/user.py`)
+- [x] 2.3 ~~Write failing unit test for `UserResource.torrents`~~ — exists (`tests/test_client.py`)
+- [x] 2.4 ~~Implement `UserResource.torrents`~~ — exists (`src/pygazelle/resources/user.py`)
+- [x] 2.5 ~~Export `UserTorrent`~~ — exported from `pygazelle.models`
+- [ ] 2.6 Confirm the shipped endpoint meets the monitor's needs: pagination is sufficient to exhaust a large list, and `torrent_id` + `group_id` + `name` are enough to build the snapshot. If the fixtures (1.2) reveal gaps, file follow-up tasks.
 
 ## 3. Event & snapshot models
 
-- [ ] 3.1 Write failing test for `TorrentChangeEvent` (kind ∈ deleted/trumped/removed, source, torrent/group ids, group name, optional replacement id)
+- [ ] 3.1 Write failing test for `TorrentChangeEvent` (kind ∈ deleted/trumped/removed, source, torrent/group ids, release name from `UserTorrent.name`, optional replacement id)
 - [ ] 3.2 Implement `TorrentChangeEvent` (new `src/pygazelle/models/monitoring.py` or `monitoring.py`); make the test pass
-- [ ] 3.3 Write failing test for the snapshot representation (per-source map of torrent id → group id/name) and its json round-trip
+- [ ] 3.3 Write failing test for the snapshot representation (per-source map of torrent id → group id + release name) and its json round-trip
 - [ ] 3.4 Implement the snapshot type + serialization; make the test pass
 
 ## 4. `TorrentMonitor` core
