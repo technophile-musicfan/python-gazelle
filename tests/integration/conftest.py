@@ -31,3 +31,9 @@ def redacted_api_key() -> str:
 def redacted_credentials() -> tuple[str, str]:
     _skip_if_missing("REDACTED_USERNAME", "REDACTED_PASSWORD")
     return os.environ["REDACTED_USERNAME"], os.environ["REDACTED_PASSWORD"]
+
+
+@pytest.fixture
+def cross_seed_source_torrent_id() -> int:
+    _skip_if_missing("ORPHEUS_API_KEY", "REDACTED_API_KEY", "CROSS_SEED_SOURCE_TORRENT_ID")
+    return int(os.environ["CROSS_SEED_SOURCE_TORRENT_ID"])

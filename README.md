@@ -99,6 +99,24 @@ async with OrpheusClient(api_key="...") as client:
 
 `client.monitor()` is also available on the sync client (`OrpheusClientSync`).
 
+## Cross-seeding a release to another tracker
+
+```python
+from pygazelle import OrpheusClient, RedactedClient, cross_seed
+
+async with OrpheusClient(api_key="...") as source, RedactedClient(api_key="...") as target:
+    result = await cross_seed(source, 12345, target)  # source torrent id 12345
+    if result:
+        # Same release found on the target tracker; write its .torrent and add to your client.
+        with open("match.torrent", "wb") as fh:
+            fh.write(result.torrent_file)
+        print("matched target torrent", result.target_torrent_id)
+    else:
+        print("no exact match on the target tracker")
+```
+
+A synchronous `cross_seed_sync(source_sync_client, source_torrent_id, target_sync_client)` is also available.
+
 ## Authentication
 
 Pass either an API key or username/password (cookie/login auth):
