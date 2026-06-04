@@ -89,5 +89,8 @@ class MonitorTransport:
             }
         raise AssertionError(f"unexpected action: {action}")
 
+    async def aclose(self) -> None:
+        pass
+
     async def download(self, torrent_id: int) -> bytes:  # pragma: no cover - unused
         return b""

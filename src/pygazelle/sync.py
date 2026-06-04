@@ -7,6 +7,7 @@ from collections.abc import Coroutine
 from typing import Any, TypeVar, Unpack, final
 
 from .client import GazelleClient, OrpheusClient, RedactedClient
+from .resources.user import UserTorrentType
 from .transport import TransportOptions
 
 _T = TypeVar("_T")
@@ -99,6 +100,17 @@ class GazelleSyncClient:
     @property
     def site(self) -> _SyncProxy:
         return _SyncProxy(self._async.site, self._bg)
+
+    def monitor(
+        self,
+        *,
+        sources: tuple[UserTorrentType, ...] = ("uploaded", "snatched"),
+        page_size: int = 50,
+    ) -> _SyncProxy:
+        """A synchronous TorrentMonitor: async ``poll()`` runs on the background
+        loop; sync methods (``dump_state``/``load_state``) pass through."""
+        async_monitor = self._async.monitor(sources=sources, page_size=page_size)
+        return _SyncProxy(async_monitor, self._bg)
 
     def close(self) -> None:
         self._bg.run(self._async.aclose())
