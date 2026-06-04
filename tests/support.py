@@ -223,6 +223,9 @@ class CrossSeedTransport:
             return {"results": self._browse_results}
         raise AssertionError(f"unexpected action: {action}")
 
+    async def aclose(self) -> None:
+        pass
+
     async def download(self, torrent_id: int) -> bytes:
         self.downloaded.append(torrent_id)
         return self._download_bytes

@@ -242,3 +242,10 @@ def test_public_exports_async():
     for name in ("cross_seed", "find_candidates", "verify_match", "CrossSeedResult"):
         assert hasattr(pygazelle, name), name
         assert name in pygazelle.__all__, name
+
+
+def test_public_exports_sync():
+    import pygazelle
+
+    assert hasattr(pygazelle, "cross_seed_sync")
+    assert "cross_seed_sync" in pygazelle.__all__

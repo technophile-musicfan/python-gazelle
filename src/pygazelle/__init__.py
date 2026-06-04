@@ -9,7 +9,7 @@ from .errors import (
 )
 from .models.monitoring import TorrentChangeEvent
 from .monitoring import TorrentMonitor
-from .sync import GazelleSyncClient, OrpheusClientSync, RedactedClientSync
+from .sync import GazelleSyncClient, OrpheusClientSync, RedactedClientSync, cross_seed_sync
 
 __all__ = [
     "GazelleClient",
@@ -29,4 +29,5 @@ __all__ = [
     "find_candidates",
     "verify_match",
     "CrossSeedResult",
+    "cross_seed_sync",
 ]
