@@ -44,6 +44,7 @@ nav:
       - Clients: reference/clients.md
       - Resources: reference/resources.md
       - Models: reference/models.md
+      - Automation: reference/automation.md
       - Errors: reference/errors.md
       - Transport: reference/transport.md
   - Development: development.md

@@ -15,8 +15,8 @@ PyPI.
 ### First-Time Setup
 
 This part is a little confusing the first time.
-Here is the simplest way to do it.
-For the purposes of this example replace OWNER and PROJECT with the right values.
+Here is the simplest way to do it. For this project the values are owner
+`technophile-musicfan` and project `python-gazelle`.
 
 **Note:** These steps assume you already have a GitHub repo with your code pushed.
 If you used [`uvx uvtemplate`](https://github.com/jlevy/uvtemplate), it handles repo
@@ -30,7 +30,7 @@ for details.
 
 2. **Pick a name for the project** that isn’t already taken.
 
-   - Go to `https://pypi.org/project/PROJECT` to see if another project with that name
+   - Go to `https://pypi.org/project/python-gazelle` to see if another project with that name
      already exits.
 
    - If needed, update your `pyproject.toml` with the correct name.
@@ -67,7 +67,7 @@ for details.
 
    - Watch for the release workflow in the GitHub Actions tab.
 
-   - If it succeeds, you should see it appear at `https://pypi.org/project/PROJECT`.
+   - If it succeeds, you should see it appear at `https://pypi.org/project/python-gazelle`.
 
 ### Publishing Subsequent Releases
 
@@ -144,7 +144,7 @@ Follow this checklist for each new release.
 
    ### Full Changelog
 
-   https://github.com/OWNER/PROJECT/compare/${LAST_TAG}...${NEW_TAG}
+   https://github.com/technophile-musicfan/python-gazelle/compare/${LAST_TAG}...${NEW_TAG}
    EOF
    )"
    ```
@@ -159,7 +159,7 @@ Follow this checklist for each new release.
    gh run list --workflow=publish.yml --limit 1
 
    # Verify on PyPI (may take a minute):
-   # https://pypi.org/project/PROJECT
+   # https://pypi.org/project/python-gazelle
    ```
 
 ### Release Notes Format
@@ -189,7 +189,7 @@ Description of what changed and how to migrate.
 
 ### Full Changelog
 
-https://github.com/OWNER/PROJECT/compare/vPREVIOUS...vNEW
+https://github.com/technophile-musicfan/python-gazelle/compare/vPREVIOUS...vNEW
 ```
 
 Guidelines:

@@ -10,8 +10,9 @@ music trackers, with built-in support for **Orpheus** and **Redacted (RED)**.
 - **API-key or cookie/login** authentication.
 - **Built-in rate limiting** (token bucket) and **automatic retries** on transient errors.
 - **Per-tracker handling** of the quirks that differ between Orpheus and RED (auth header, base URL, required headers).
+- **Automation helpers**: upload/snatch monitoring, cross-seeding, and cross-uploading between trackers.
 
-> Status: Beta. The core API client is implemented (torrents, artists, user, notifications, requests, collages, inbox). Cross-seed, upload monitoring, and cross-upload are planned.
+> Status: Beta. The core API client (torrents, artists, user, notifications, requests, collages, inbox) and the automation helpers — upload/snatch monitoring, cross-seed, and cross-upload — are implemented. Note: cross-upload's tracker upload-form fields are best-effort pending verification against the live API.
 
 ## Installation
 
