@@ -152,3 +152,93 @@ async def test_find_candidates_caps_deep_checks():
     candidates = await find_candidates(source, _client(target), max_deep_checks=3)
     assert len(target.torrent_gets) == 3
     assert len(candidates) == 3
+
+
+from pygazelle.crossseed import cross_seed
+
+
+async def test_cross_seed_happy_path_returns_torrent_bytes():
+    files = [("01.flac", 30), ("02.flac", 28)]
+    source_t = CrossSeedTransport(
+        torrents={
+            1: make_torrent_payload(torrent_id=1, file_path="Album [FLAC]", files=files, **_BASE)
+        }
+    )
+    target_t = CrossSeedTransport(
+        browse_results=[
+            make_browse_group(
+                group_id=9,
+                group_name="Album",
+                artist="Band",
+                year=2020,
+                torrents=[make_browse_row(torrent_id=20, size=58, file_count=2)],
+            )
+        ],
+        torrents={
+            20: make_torrent_payload(torrent_id=20, file_path="Album [FLAC]", files=files, **_BASE)
+        },
+        download_bytes=b"the-torrent",
+    )
+    result = await cross_seed(_client(source_t), 1, _client(target_t))
+    assert result is not None
+    assert result.torrent_file == b"the-torrent"
+    assert result.source_torrent_id == 1
+    assert result.target_torrent_id == 20
+    assert result.confidence == "exact"
+    assert target_t.downloaded == [20]
+
+
+async def test_cross_seed_no_filelist_match_returns_none():
+    source_t = CrossSeedTransport(
+        torrents={
+            1: make_torrent_payload(
+                torrent_id=1, file_path="Album [FLAC]", files=[("01.flac", 30)], **_BASE
+            )
+        }
+    )
+    target_t = CrossSeedTransport(
+        browse_results=[
+            make_browse_group(
+                group_id=9,
+                group_name="Album",
+                artist="Band",
+                year=2020,
+                torrents=[make_browse_row(torrent_id=20, size=30, file_count=1)],
+            )
+        ],
+        torrents={
+            20: make_torrent_payload(
+                torrent_id=20, file_path="DIFFERENT", files=[("01.flac", 30)], **_BASE
+            )
+        },
+    )
+    assert await cross_seed(_client(source_t), 1, _client(target_t)) is None
+    assert target_t.downloaded == []
+
+
+async def test_cross_seed_source_without_filelist_returns_none():
+    source_t = CrossSeedTransport(
+        torrents={1: make_torrent_payload(torrent_id=1, file_path="X", files=[], **_BASE)}
+    )
+    target_t = CrossSeedTransport()
+    assert await cross_seed(_client(source_t), 1, _client(target_t)) is None
+
+
+async def test_cross_seed_no_search_hits_returns_none():
+    source_t = CrossSeedTransport(
+        torrents={
+            1: make_torrent_payload(
+                torrent_id=1, file_path="Album [FLAC]", files=[("01.flac", 30)], **_BASE
+            )
+        }
+    )
+    target_t = CrossSeedTransport(browse_results=[])
+    assert await cross_seed(_client(source_t), 1, _client(target_t)) is None
+
+
+def test_public_exports_async():
+    import pygazelle
+
+    for name in ("cross_seed", "find_candidates", "verify_match", "CrossSeedResult"):
+        assert hasattr(pygazelle, name), name
+        assert name in pygazelle.__all__, name

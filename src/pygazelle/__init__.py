@@ -1,4 +1,5 @@
 from .client import GazelleClient, OrpheusClient, RedactedClient
+from .crossseed import CrossSeedResult, cross_seed, find_candidates, verify_match
 from .errors import (
     GazelleAPIError,
     GazelleAuthError,
@@ -24,4 +25,8 @@ __all__ = [
     "GazelleAPIError",
     "TorrentMonitor",
     "TorrentChangeEvent",
+    "cross_seed",
+    "find_candidates",
+    "verify_match",
+    "CrossSeedResult",
 ]

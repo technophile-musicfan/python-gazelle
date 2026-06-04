@@ -90,3 +90,32 @@ async def find_candidates(
         except GazelleNotFoundError:
             continue
     return candidates
+
+
+async def cross_seed(
+    source_client: GazelleClient,
+    source_torrent_id: int,
+    target_client: GazelleClient,
+    *,
+    max_deep_checks: int = DEFAULT_MAX_DEEP_CHECKS,
+) -> CrossSeedResult | None:
+    """Find ``source_torrent_id`` (on ``source_client``) on ``target_client`` and
+    return the target's .torrent. Returns None when the source has no file list
+    or no candidate exactly matches.
+    """
+    source = await source_client.torrents.get(source_torrent_id)
+    if not source.files:
+        logger.info("cross-seed: source torrent %d has no file list", source_torrent_id)
+        return None
+
+    candidates = await find_candidates(source, target_client, max_deep_checks=max_deep_checks)
+    for candidate in candidates:
+        if verify_match(source, candidate):
+            torrent_file = await target_client.torrents.download(candidate.id)
+            return CrossSeedResult(
+                match=candidate,
+                torrent_file=torrent_file,
+                source_torrent_id=source_torrent_id,
+                target_torrent_id=candidate.id,
+            )
+    return None
