@@ -23,6 +23,8 @@ def make_torrent_row(torrent_id: int) -> dict[str, Any]:
         "snatched": 0,
         "time": "2020-01-01 00:00:00",
         "filePath": "x",
+        "userId": 1,
+        "username": "uploader",
     }
 
 
@@ -59,6 +61,7 @@ class MonitorTransport:
         self._missing = set(missing_groups)
         self._fail_action = fail_action
         self.group_lookups: list[int] = []
+        self._call_counts: dict[str, int] = {}
 
     async def request(self, action: str, **params: Any) -> Any:
         if self._fail_action and action == self._fail_action[0]:
@@ -67,11 +70,12 @@ class MonitorTransport:
             return {"id": self._user_id, "username": "tester"}
         if action == "user_torrents":
             kind = params["type"]
-            limit = params.get("limit") or 1
-            offset = params.get("offset") or 0
             pages = self._pages.get(kind, [[]])
-            idx = offset // limit
-            rows = pages[idx] if idx < len(pages) else []
+            idx = self._call_counts.get(kind, 0)
+            # Sticky: once we've exhausted the pages list, keep returning the last page.
+            idx = min(idx, len(pages) - 1) if pages else 0
+            rows = pages[idx] if pages else []
+            self._call_counts[kind] = idx + 1
             return {kind: rows, "total": sum(len(p) for p in pages)}
         if action == "torrentgroup":
             gid = params["id"]

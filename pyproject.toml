@@ -208,6 +208,7 @@ testpaths = [
     "src",
     "tests",
 ]
+pythonpath = ["."]
 norecursedirs = []
 filterwarnings = []
 asyncio_mode = "auto"
