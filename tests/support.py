@@ -94,3 +94,135 @@ class MonitorTransport:
 
     async def download(self, torrent_id: int) -> bytes:  # pragma: no cover - unused
         return b""
+
+
+def make_torrent_payload(
+    *,
+    torrent_id: int,
+    group_id: int,
+    group_name: str,
+    year: int,
+    artist: str,
+    file_path: str,
+    files: list[tuple[str, int]],
+    fmt: str = "FLAC",
+    encoding: str = "Lossless",
+    media: str = "CD",
+) -> dict[str, Any]:
+    """Build an action=torrent response ({"torrent": ..., "group": ...}) that
+    validates as a Torrent with a file list and group metadata.
+
+    ``files`` is a list of (relative path, size) pairs.
+    """
+    file_list = "|||".join(f"{path}{{{{{{{size}}}}}}}" for path, size in files)
+    total = sum(size for _, size in files)
+    return {
+        "torrent": {
+            "id": torrent_id,
+            "media": media,
+            "format": fmt,
+            "encoding": encoding,
+            "scene": False,
+            "hasLog": False,
+            "hasCue": False,
+            "logScore": 0,
+            "fileCount": len(files),
+            "size": total,
+            "seeders": 1,
+            "leechers": 0,
+            "snatched": 0,
+            "time": "2020-01-01 00:00:00",
+            "filePath": file_path,
+            "userId": 1,
+            "username": "uploader",
+            "fileList": file_list,
+        },
+        "group": {
+            "id": group_id,
+            "name": group_name,
+            "year": year,
+            "musicInfo": {"artists": [{"id": 1, "name": artist}]},
+        },
+    }
+
+
+def make_browse_row(
+    *,
+    torrent_id: int,
+    size: int,
+    file_count: int,
+    fmt: str = "FLAC",
+    encoding: str = "Lossless",
+    media: str = "CD",
+) -> dict[str, Any]:
+    """A BrowseTorrent row inside a browse group result."""
+    return {
+        "torrentId": torrent_id,
+        "size": size,
+        "fileCount": file_count,
+        "format": fmt,
+        "encoding": encoding,
+        "media": media,
+    }
+
+
+def make_browse_group(
+    *,
+    group_id: int,
+    group_name: str,
+    artist: str,
+    year: int,
+    torrents: list[dict[str, Any]],
+) -> dict[str, Any]:
+    """A browse result group (action=browse 'results' entry)."""
+    return {
+        "groupId": group_id,
+        "groupName": group_name,
+        "artist": artist,
+        "groupYear": year,
+        "maxSize": max((t["size"] for t in torrents), default=0),
+        "totalSeeders": 1,
+        "totalLeechers": 0,
+        "totalSnatched": 0,
+        "torrents": torrents,
+    }
+
+
+class CrossSeedTransport:
+    """Fake transport for one side (source or target) of a cross-seed test.
+
+    torrents: {id: action=torrent response} (use make_torrent_payload).
+    browse_results: list of browse group dicts (use make_browse_group); returned
+        for any 'browse' action regardless of params.
+    download_bytes: bytes returned by download().
+    """
+
+    def __init__(
+        self,
+        *,
+        torrents: dict[int, dict[str, Any]] | None = None,
+        browse_results: list[dict[str, Any]] | None = None,
+        download_bytes: bytes = b"torrent-file-bytes",
+    ) -> None:
+        self._torrents = torrents or {}
+        self._browse_results = browse_results or []
+        self._download_bytes = download_bytes
+        self.downloaded: list[int] = []
+        self.torrent_gets: list[int] = []
+
+    async def request(self, action: str, **params: Any) -> Any:
+        if action == "torrent":
+            tid = params["id"]
+            self.torrent_gets.append(tid)
+            from pygazelle.errors import GazelleNotFoundError
+
+            if tid not in self._torrents:
+                raise GazelleNotFoundError(f"torrent {tid} not found")
+            return self._torrents[tid]
+        if action == "browse":
+            return {"results": self._browse_results}
+        raise AssertionError(f"unexpected action: {action}")
+
+    async def download(self, torrent_id: int) -> bytes:
+        self.downloaded.append(torrent_id)
+        return self._download_bytes
