@@ -4,12 +4,21 @@ import logging
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any, Literal
 
-from .crossseed import find_candidates, verify_match  # noqa: F401  # used by later cross-upload functions  # pyright: ignore[reportUnusedImport]
-from .errors import GazelleError  # noqa: F401  # used by later cross-upload functions  # pyright: ignore[reportUnusedImport]
-from .models.torrents import Torrent  # noqa: F401  # used by later cross-upload functions  # pyright: ignore[reportUnusedImport]
-
 if TYPE_CHECKING:
-    from .client import GazelleClient  # pyright: ignore[reportUnusedImport]
+    from .client import (
+        GazelleClient,  # noqa: F401  # used by later cross-upload functions  # pyright: ignore[reportUnusedImport]
+    )
+
+from .crossseed import (
+    find_candidates,  # noqa: F401  # used by later cross-upload functions  # pyright: ignore[reportUnusedImport]
+    verify_match,  # noqa: F401  # used by later cross-upload functions  # pyright: ignore[reportUnusedImport]
+)
+from .errors import (
+    GazelleError,  # noqa: F401  # used by later cross-upload functions  # pyright: ignore[reportUnusedImport]
+)
+from .models.torrents import (
+    Torrent,  # noqa: F401  # used by later cross-upload functions  # pyright: ignore[reportUnusedImport]
+)
 
 logger = logging.getLogger("pygazelle.crossupload")
 
