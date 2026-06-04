@@ -111,8 +111,20 @@ async def test_find_candidates_prefilters_wrong_format():
 
 
 async def test_find_candidates_groupname_fallback_when_no_artist_hits():
+    # The first (artist-scoped) search returns nothing; discovery must retry with
+    # a groupname-only search, which then finds the candidate.
     source = _torrent(torrent_id=1, file_path="Album [FLAC]", files=[("01.flac", 30)], **_BASE)
-    target = CrossSeedTransport(
+    browse_calls: list[dict[str, Any]] = []
+
+    class FallbackTransport(CrossSeedTransport):
+        async def request(self, action: str, **params: Any) -> Any:
+            if action == "browse":
+                browse_calls.append(dict(params))
+                if len(browse_calls) == 1:
+                    return {"results": []}  # artist-scoped search: no hits
+            return await super().request(action, **params)
+
+    target = FallbackTransport(
         browse_results=[
             make_browse_group(
                 group_id=9,
@@ -129,6 +141,9 @@ async def test_find_candidates_groupname_fallback_when_no_artist_hits():
         },
     )
     candidates = await find_candidates(source, _client(target))
+    assert len(browse_calls) == 2  # artist search, then groupname-only fallback
+    assert "artistname" not in browse_calls[1]  # fallback is groupname-only
+    assert browse_calls[1].get("groupname") == "Album"
     assert [c.id for c in candidates] == [20]
 
 
@@ -222,6 +237,9 @@ async def test_cross_seed_source_without_filelist_returns_none():
     )
     target_t = CrossSeedTransport()
     assert await cross_seed(_client(source_t), 1, _client(target_t)) is None
+    # Short-circuit: the target tracker must never be contacted.
+    assert target_t.torrent_gets == []
+    assert target_t.downloaded == []
 
 
 async def test_cross_seed_no_search_hits_returns_none():

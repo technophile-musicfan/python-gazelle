@@ -125,19 +125,19 @@ def cross_seed_sync(
     source_torrent_id: int,
     target_client: GazelleSyncClient,
     *,
-    max_deep_checks: int = 5,
+    max_deep_checks: int | None = None,
 ) -> CrossSeedResult | None:
     """Synchronous cross-seed: runs the async cross_seed on the source client's
     background loop and returns the result (or None) directly, no await.
     """
-    from .crossseed import cross_seed
+    from .crossseed import DEFAULT_MAX_DEEP_CHECKS, cross_seed
 
     return source_client._bg.run(  # pyright: ignore[reportPrivateUsage]
         cross_seed(
             source_client._async,  # pyright: ignore[reportPrivateUsage]
             source_torrent_id,
             target_client._async,  # pyright: ignore[reportPrivateUsage]
-            max_deep_checks=max_deep_checks,
+            max_deep_checks=DEFAULT_MAX_DEEP_CHECKS if max_deep_checks is None else max_deep_checks,
         )
     )
 
