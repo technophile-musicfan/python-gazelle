@@ -120,6 +120,13 @@ def map_metadata(source: Torrent, target: TrackerKind) -> MappedForm:
         else:
             out.unmapped.append("release_type")
             out.warnings.append(f"release type {rt} has no {target} equivalent; set it manually")
+    else:
+        # No group metadata on the source: flag the group-derived fields for the
+        # caller rather than silently omitting them.
+        out.unmapped.extend(["title", "year", "artists", "release_type"])
+        out.warnings.append(
+            "source has no group metadata; title/year/artists/release_type must be set manually"
+        )
     out.fields["format"] = source.format
     out.fields["bitrate"] = source.encoding  # Gazelle 'bitrate' carries the encoding value
     out.fields["media"] = source.media

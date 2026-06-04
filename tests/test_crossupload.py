@@ -217,6 +217,7 @@ async def test_submit_possible_duplicate_does_not_block():
     target = UploadTransport(upload_response={"torrentid": 99, "groupid": 42})
     result = await submit_upload(_client(target), draft)
     assert result.torrent_id == 99
+    assert len(target.writes) == 1  # possible duplicate does not block the upload
 
 
 async def test_submit_happy_path_posts_multipart():
@@ -257,6 +258,33 @@ async def test_prepare_upload_source_not_found_raises():
     target_t = UploadTransport()
     with pytest.raises(GazelleNotFoundError):
         await prepare_upload(_client(source_t), 1, _client(target_t), torrent_file=b"x")
+
+
+async def test_prepare_upload_dup_check_failure_is_warned_not_raised():
+    from pygazelle.errors import GazelleAPIError
+
+    src_payload = make_torrent_payload(
+        torrent_id=1,
+        group_id=5,
+        group_name="Album",
+        year=2020,
+        artist="Band",
+        file_path="Album [FLAC]",
+        files=[("01.flac", 30)],
+    )
+    src_payload["group"]["releaseType"] = 1
+    source_t = UploadTransport(torrents={1: src_payload})
+
+    class FailingBrowse(UploadTransport):
+        async def request(self, action: str, **params: object) -> object:
+            if action == "browse":
+                raise GazelleAPIError(status_code=500)
+            return await super().request(action, **params)
+
+    target_t = FailingBrowse()
+    draft = await prepare_upload(_client(source_t), 1, _client(target_t), torrent_file=b"t")
+    assert draft.duplicates == []  # failed dup check does not abort prepare
+    assert any("duplicate check failed" in w.lower() for w in draft.warnings)
 
 
 def test_public_exports():
