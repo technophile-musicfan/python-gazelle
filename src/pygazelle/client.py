@@ -1,7 +1,11 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Unpack
+from typing import Unpack
 
+# Runtime-safe: monitoring.py imports GazelleClient only under TYPE_CHECKING, so
+# this top-level import does not form a runtime cycle. (basedpyright's static
+# reportImportCycles is disabled for this pair — see pyproject.toml.)
+from .monitoring import TorrentMonitor
 from .resources.artists import ArtistResource
 from .resources.bookmarks import BookmarkResource
 from .resources.collages import CollageResource
@@ -13,10 +17,6 @@ from .resources.subscriptions import SubscriptionResource
 from .resources.torrents import TorrentResource
 from .resources.user import UserResource, UserTorrentType
 from .transport import GazelleTransport, TransportOptions
-
-if TYPE_CHECKING:
-    from .monitoring import TorrentMonitor
-
 
 ORPHEUS_BASE_URL = "https://orpheus.network"
 # RED migrated from redacted.ch to redacted.sh; the old domain returns HTTP 410.
@@ -104,9 +104,7 @@ class GazelleClient:
         page_size: int = 50,
     ) -> TorrentMonitor:
         """Construct a TorrentMonitor bound to this client."""
-        from .monitoring import TorrentMonitor as _TorrentMonitor
-
-        return _TorrentMonitor(self, sources=sources, page_size=page_size)
+        return TorrentMonitor(self, sources=sources, page_size=page_size)
 
     async def aclose(self) -> None:
         await self._transport.aclose()

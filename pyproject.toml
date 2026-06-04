@@ -158,7 +158,10 @@ reportAny = false
 reportExplicitAny = false
 reportImplicitStringConcatenation = false
 reportUnreachable = false
-# client.py ↔ monitoring.py is a TYPE_CHECKING-only cycle (safe at runtime).
+# A Client.monitor() factory returns a TorrentMonitor that holds a typed
+# GazelleClient back-reference — an inherent (TYPE_CHECKING-only, runtime-safe)
+# import cycle that basedpyright flags wherever the import is placed. Disabled
+# rather than papering it with a Protocol indirection alien to this codebase.
 reportImportCycles = false
 # reportPrivateImportUsage = false
 # reportPrivateLocalImportUsage = false
