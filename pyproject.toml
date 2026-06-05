@@ -93,6 +93,18 @@ bump = true
 # The source location for the package.
 packages = ["src/pygazelle"]
 
+[tool.hatch.build.targets.sdist]
+# Restrict the source distribution to what a consumer needs. Without this,
+# hatchling's default sdist ships every non-gitignored file — including
+# project-internal tooling (.beads/, .idea/, openspec/, CLAUDE.md, AGENTS.md)
+# that should never reach PyPI. `only-include` is strict (unlike `include`,
+# which is additive to hatchling's defaults).
+only-include = [
+    "src/pygazelle",
+    "README.md",
+    "LICENSE",
+]
+
 
 # ---- Settings ----
 
