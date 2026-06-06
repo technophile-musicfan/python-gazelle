@@ -99,10 +99,6 @@ cross-ecosystem guide on installing dependencies safely. Its key defaults:
 - **Pin, lock, and audit:** Commit your `uv.lock`, pin GitHub Actions to a commit SHA or
   immutable tag, and run a vulnerability audit (e.g. `pip-audit`) after changes.
 
-## Publishing Releases
-
-See [publishing.md](publishing.md) for instructions on publishing to PyPI.
-
 ## Documentation
 
 - [uv docs](https://docs.astral.sh/uv/)

@@ -48,13 +48,14 @@ nav:
       - Errors: reference/errors.md
       - Transport: reference/transport.md
   - Development: development.md
-  - Publishing: publishing.md
 
-# Internal design docs and the dev-oriented top-level installation page are kept
-# in the repo but excluded from the published site (the site uses guide/*).
+# Internal design docs, the dev-oriented top-level installation page, and the
+# maintainer-only PyPI release runbook are kept in the repo but excluded from
+# the published site (the site uses guide/* and is consumer-facing).
 exclude_docs: |
   superpowers/
   /installation.md
+  /publishing.md
 
 plugins:
   - search
